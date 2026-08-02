@@ -1,0 +1,10 @@
+# Fichiers générés localement — ne pas versionner
+site/
+boussole_sante.html
+boussole_historique.db
+boussole_collecte.log
+.DS_Store
+
+# On VERSIONNE boussole_coords.json : il sert de secours au serveur de
+# publication si le répertoire M02 est temporairement inaccessible.
+__pycache__/

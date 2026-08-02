@@ -1,0 +1,68 @@
+# Boussole santé — collecte horaire et publication sur GitHub Pages.
+#
+# Chaque heure à h:55 (UTC), ce workflow :
+#   1. restaure l'historique SQLite (cache entre les exécutions) ;
+#   2. lance « python3 boussole.py --site » : télécharge les données MSSS,
+#      historise, génère le dossier site/ (PWA complète) ;
+#   3. publie site/ sur GitHub Pages.
+# Si les données réelles sont indisponibles, le script sort en erreur et la
+# version précédente du site reste en ligne — on ne publie jamais la démo.
+#
+# Activation (une seule fois, dans les réglages du dépôt GitHub) :
+#   Settings → Pages → Source : « GitHub Actions ».
+
+name: Collecte et publication
+
+on:
+  schedule:
+    - cron: "55 * * * *"   # chaque heure à h:55 (UTC) — le MSSS publie vers h:46
+  workflow_dispatch:        # bouton « Run workflow » pour lancer à la main
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # L'historique vit dans le cache d'Actions : s'il est perdu (rare),
+      # les tendances repartent de zéro et reviennent après 3 jours — la
+      # page gère ce cas toute seule.
+      - name: Restaurer l'historique
+        uses: actions/cache@v4
+        with:
+          path: boussole_historique.db
+          key: historique-${{ github.run_id }}
+          restore-keys: |
+            historique-
+
+      - name: Générer le site
+        run: python3 boussole.py --site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
