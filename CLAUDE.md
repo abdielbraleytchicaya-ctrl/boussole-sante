@@ -130,6 +130,14 @@ Résultat vérifié : 107 installations, « données MSSS en direct ».
    régler Pages sur « GitHub Actions ». RAPPEL : diffusion publique →
    validation professionnelle des textes du guide d'abord (item 1 README).
    La page autonome (double-clic) et le mode --demo restent inchangés.
+   État au 2 août 2026 : dépôt git LOCAL initialisé (branche main, premier
+   commit fait), gh CLI authentifié (compte abdielbraleytchicaya-ctrl,
+   forfait vraisemblablement gratuit → Pages exige un dépôt public).
+   L'utilisateur a choisi de NE PAS héberger pour l'instant : attendre la
+   validation professionnelle des textes. Quand ce sera fait, les 3
+   commandes (gh repo create --public --push, activation Pages
+   build_type=workflow, gh workflow run) sont dans l'historique de
+   conversation et dans le README. Rien n'a été publié.
 
 ## Ajouts après la feuille de route initiale
 - Tri « distance » + bascule automatique en « plus proche d'abord » dès que
