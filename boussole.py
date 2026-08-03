@@ -677,8 +677,24 @@ color:var(--brand-on);cursor:pointer;}
 .tbrand .tt{opacity:0.78;}
 .tbrand:hover{background:var(--brand-dark);border-color:var(--brand-dark);}
 .duo{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-top:16px;}
-@media(max-width:840px){.duo{grid-template-columns:1fr;}
+@media(max-width:840px){.duo{grid-template-columns:1fr;gap:12px;margin-top:12px;}
 .h1g{font-size:30px;}.c20{padding:22px;}}
+@media(max-width:640px){
+.h1g{font-size:24px;margin:8px 0 6px;}
+.sous{font-size:14px;}
+#ecran1 .c20:first-child{padding:18px 16px !important;}
+.c20{padding:18px 16px;}
+.triage{gap:8px;margin-top:16px;}
+.tcard{padding:13px 14px;gap:4px;}
+.tcard .td{font-size:14px;}
+.tcard .tn{font-size:16px;margin-top:4px;}
+.chips{margin:10px 0 14px;}
+.entete .marque b{font-size:17px;}
+.entete .marque img{width:34px;height:34px;}
+.onglet{padding:7px 12px;font-size:12.5px;}
+.bigmono{font-size:26px !important;}
+body{padding:16px 12px 48px;}
+}
 .bigmono{font-family:var(--mono);font-weight:500;line-height:1;color:var(--brand);}
 .pill{font:inherit;font-size:14px;font-weight:600;padding:11px 18px;
 border-radius:999px;cursor:pointer;}
@@ -1347,13 +1363,14 @@ function setPosition(lat,lon,ville){
   const sel=document.getElementById('sort');
   if(sel.value!=='total')sel.value='distance';
   if(!document.getElementById('posnote')){
-    const n=document.createElement('p');n.id='posnote';n.className='sub';
+    const n=document.createElement('p');n.id='posnote';n.className='gnote';
     n.textContent='Distances \\u00e0 vol d\\u2019oiseau et temps de route estim\\u00e9s \\u2014 '+
       'sur de longues distances, le trajet r\\u00e9el (fleuve, traversiers, d\\u00e9tours) '+
       'peut \\u00eatre beaucoup plus long. Votre position reste dans votre navigateur : '+
       'elle n\\u2019est jamais transmise. Si vous choisissez votre ville dans la '+
       'liste, elle est retenue sur cet appareil seulement, pour la prochaine visite.';
-    document.getElementById('notice').before(n);
+    const f=document.querySelector('footer');
+    if(f)f.prepend(n);
   }
   render();
 }
@@ -2205,7 +2222,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v20';
+const CACHE='boussole-v21';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
