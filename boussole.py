@@ -1023,12 +1023,13 @@ relevé à celui d'environ 3 heures avant (écart d'au moins 3 personnes et
 les civières occupées divisées par toutes les civières fonctionnelles), sur
 les seules urgences diffusées par le MSSS.</p>
 <p><b>«&nbsp;Recommandé près de vous&nbsp;»</b>&nbsp;: toujours l'urgence
-générale la plus proche de votre position. Si, dans un rayon réaliste, un
-hôpital plus éloigné afficherait un temps total estimé d'au moins
-45&nbsp;minutes de moins, il est mentionné comme <b>alternative
-optionnelle</b> — jamais comme recommandation principale, car ces
-estimations ne comptent ni le trafic réel ni leur propre marge
-d'erreur.</p>
+générale la plus proche de votre position, suivie des trois voisines les
+plus proches avec leur temps total estimé — du 2<sup>e</sup> au
+4<sup>e</sup> plus proche, jamais un hôpital à l'autre bout de la carte.
+Si une voisine est nettement plus rapide (au moins 45&nbsp;minutes de
+moins), elle est signalée «&nbsp;le plus rapide des environs&nbsp;». Le
+choix reste le vôtre&nbsp;: ces estimations ne comptent ni le trafic réel
+ni leur propre marge d'erreur.</p>
 <p><b>Urgences spécialisées</b>&nbsp;: les urgences à vocation particulière
 (santé mentale, cardiologie-pneumologie, pédiatrie) sont reconnues par leur
 nom, étiquetées dans la liste et exclues de la carte
@@ -1245,18 +1246,35 @@ function recommHtml(){
     '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">'+
     '<button type="button" class="pill pill-n" data-fiche="'+proche._i+'">Voir la fiche</button>'+
     '<button type="button" class="pill pill-o" data-go2="1">Comparer les autres</button></div>';
-  /* Une option plus lointaine n'est qu'une ALTERNATIVE, jamais le choix par
-     d\u00e9faut \u2014 et on invite \u00e0 la prudence (trafic non compt\u00e9). */
-  const best=meilleurGeneral();
-  if(best&&best!==proche&&best._total!=null&&proche._total!=null){
+  /* Apr\\u00e8s le plus proche : les voisins imm\\u00e9diats (2e, 3e, 4e
+     plus proches), avec leurs chiffres. Si l'un d'eux est plus rapide, la
+     personne le voit d'elle-m\\u00eame \\u2014 on ne l'exp\\u00e9die plus
+     \\u00e0 l'autre bout de la carte. S'adapte \\u00e0 toutes les villes :
+     en r\\u00e9gion, les voisins sont naturellement plus loin. */
+  const gens=DATA.filter(d=>!vocation(d)&&d._km!=null)
+    .sort((a,b)=>a._km-b._km);
+  const voisins=gens.slice(1,4);
+  if(voisins.length){
+    const tous=[proche].concat(voisins).filter(d=>d._total!=null);
+    let rapide=null;
+    tous.forEach(d=>{if(rapide==null||d._total<rapide._total)rapide=d;});
     h+='<div class="hr"></div>'+
-      '<p class="trcap"><b>Si vous pouvez faire la route\u00a0:</b> '+
-      best.installation+', \u00e0 '+Math.round(best._km)+' km (~'+
-      fmtMin(best._route)+'), afficherait un temps total \u2248 '+
-      fmtMin(best._total)+' \u2014 soit \u2248 '+
-      fmtMin(proche._total-best._total)+' de moins. Estimation \u00e0 prendre '+
-      'avec prudence\u00a0: le trafic r\u00e9el n\u2019est pas compt\u00e9. '+
-      '<span class="regchip" data-fiche="'+best._i+'">Voir sa fiche</span></p>';
+      '<div class="kick" style="margin-bottom:4px">Aussi pr\\u00e8s de vous</div>'+
+      voisins.map(v=>{
+        const bv=estBornes(v);
+        const t=v._total!=null?fmtMin(v._total)
+          :(bv?fmtMin((bv.lo+bv.hi)/2):'n/d');
+        const plusRapide=(rapide&&v===rapide&&proche._total!=null&&
+          v._total<=proche._total-45);
+        return '<div class="resrow" style="cursor:pointer" data-fiche="'+v._i+'">'+
+          '<span>'+v.installation+' \\u00b7 '+Math.round(v._km)+' km'+
+          (plusRapide?' \\u00b7 <b style="color:var(--fluide)">le plus rapide '+
+            'des environs</b>':'')+'</span>'+
+          '<span class="mono"'+(plusRapide?' style="color:var(--fluide)"':'')+
+          '>'+t+'</span></div>';
+      }).join('')+
+      '<p class="trcap">Temps total estim\\u00e9 (route + s\\u00e9jour) \\u00b7 '+
+      'touchez un h\\u00f4pital pour ouvrir sa fiche.</p>';
   }
   return h;
 }
@@ -1967,7 +1985,8 @@ Promise.resolve(__PAYLOAD__).then(j=>{
   document.getElementById('recomm').addEventListener('click',e=>{
     const g=a=>e.target.getAttribute&&e.target.getAttribute(a);
     if(g('data-loc')){locate();return;}
-    const fi=g('data-fiche');
+    const cf=e.target.closest&&e.target.closest('[data-fiche]');
+    const fi=cf?cf.getAttribute('data-fiche'):null;
     if(fi!=null){openFiche(DATA[+fi]);return;}
     if(g('data-go2')){
       goScreen(2);
@@ -2186,7 +2205,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v19';
+const CACHE='boussole-v20';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
