@@ -921,9 +921,54 @@ Source : Fichier horaire de la situation à l'urgence, Console provinciale des u
 ministère de la Santé et des Services sociaux, via Données Québec.<br>
 Si un hôpital est absent, il se peut que le MSSS ait suspendu temporairement la diffusion de sa région.<br>Outil d'information seulement — les cas prioritaires sont toujours vus en premier,
 peu importe l'établissement. En cas d'urgence vitale, composez le 911.<br>
+<a id="lien-apropos" href="#" style="color:var(--info);font-weight:600">À propos —
+ce que la Boussole fait (et ne fait pas)</a> ·
 <a id="lien-methodo" href="#" style="color:var(--info);font-weight:600">Méthodologie,
 sources et vie privée</a>__SOUTIEN__
 </footer>
+<div id="apropos-src" style="display:none">
+<p class="name" style="font-size:18px;padding-right:90px">Ce que la Boussole
+fait — et ne fait pas</p>
+
+<p class="fh">Ce qu'elle fait</p>
+<p><b>Informer en temps réel.</b> L'état des urgences du Québec diffusées par
+le MSSS, actualisé chaque heure&nbsp;: personnes en attente d'un médecin,
+personnes sur place, civières, séjours moyens — et un portrait d'ensemble du
+réseau (fluide / chargé / débordé).</p>
+<p><b>Orienter selon le besoin.</b> Trier l'urgence vitale (911, 988) et le
+doute (811), décrire factuellement les ressources — pharmacien, 811, GAP,
+cliniques, CLSC (avec les points de service les plus proches), urgence — et
+recommander une urgence générale à distance raisonnable, en expliquant
+pourquoi.</p>
+<p><b>Aider à décider.</b> Distances et temps de route estimés, fourchette de
+temps sur place pour un cas non prioritaire ajustée à l'achalandage, historique
+des dernières heures, affluence typique par heure, «&nbsp;quand partir&nbsp;»,
+comparateur, carte, favoris.</p>
+<p><b>Respecter l'utilisateur.</b> Gratuite, sans compte, sans publicité, sans
+traçage&nbsp;; la position ne quitte jamais l'appareil&nbsp;; fonctionne hors
+ligne&nbsp;; sources et calculs publics.</p>
+
+<p class="fh">Ce qu'elle ne fait pas</p>
+<p><b>Côté médical — la ligne rouge.</b> Aucun diagnostic, aucun avis médical,
+aucune évaluation de symptômes&nbsp;: la Boussole ne demande jamais
+«&nbsp;où avez-vous mal&nbsp;?&nbsp;». Elle ne prédit pas votre attente
+personnelle&nbsp;: au triage, la priorité clinique passe avant tout. Elle ne
+remplace ni le 911, ni le 811, ni un professionnel de la santé.</p>
+<p><b>Côté technique — limites assumées.</b> Distances à vol d'oiseau (pas
+d'itinéraire réel)&nbsp;; pas de notifications&nbsp;; pas de filtres
+«&nbsp;24&nbsp;h&nbsp;» ou «&nbsp;pédiatrie&nbsp;» (absents des données
+MSSS)&nbsp;; pas de prise de rendez-vous&nbsp;; les hôpitaux dont le MSSS
+suspend la diffusion n'apparaissent pas&nbsp;; de légers écarts avec Québec.ca
+sont possibles.</p>
+<p><b>Côté données personnelles — par conception.</b> Elle ne collecte, ne
+stocke et ne transmet aucune donnée de santé ni de position. Elle ne sait
+même pas combien de personnes l'utilisent.</p>
+
+<p class="fh">En une phrase</p>
+<p>La Boussole vous dit <b>où le réseau en est</b> et <b>où il est raisonnable
+d'aller</b> — jamais <b>ce que vous avez</b> ni <b>combien de temps vous
+attendrez, vous</b>.</p>
+</div>
 <div id="methodo-src" style="display:none">
 <p class="name" style="font-size:18px;padding-right:90px">Méthodologie, sources et vie privée</p>
 
@@ -1913,6 +1958,16 @@ Promise.resolve(__PAYLOAD__).then(j=>{
       render();
     }
   });
+  document.getElementById('lien-apropos').addEventListener('click',e=>{
+    e.preventDefault();
+    const v=document.createElement('div');v.className='voile';v.id='voile';
+    v.innerHTML='<div class="fiche methodo"><button type="button" class="fx" '+
+      'id="fermer">\u2715 Fermer</button>'+
+      document.getElementById('apropos-src').innerHTML+'</div>';
+    v.addEventListener('click',ev=>{
+      if(ev.target===v||ev.target.id==='fermer')v.remove();});
+    document.body.appendChild(v);
+  });
   document.getElementById('lien-methodo').addEventListener('click',e=>{
     e.preventDefault();
     const v=document.createElement('div');v.className='voile';v.id='voile';
@@ -2068,7 +2123,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v15';
+const CACHE='boussole-v16';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
