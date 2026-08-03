@@ -44,6 +44,10 @@ CKAN_API = ("https://www.donneesquebec.ca/recherche/api/3/action/"
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
 
+# Lien de soutien (Buy Me a Coffee, Ko-fi, GitHub Sponsors…). Laisser vide
+# pour masquer le bouton « Soutenir la Boussole » du pied de page.
+SOUTIEN_URL = ""
+
 CACHE_TTL = 600  # secondes (10 min) — les données MSSS changent chaque heure
 _cache = {"t": 0, "data": None, "source": None, "error": None,
           "releve": None, "hist": None}
@@ -918,7 +922,7 @@ ministère de la Santé et des Services sociaux, via Données Québec.<br>
 Si un hôpital est absent, il se peut que le MSSS ait suspendu temporairement la diffusion de sa région.<br>Outil d'information seulement — les cas prioritaires sont toujours vus en premier,
 peu importe l'établissement. En cas d'urgence vitale, composez le 911.<br>
 <a id="lien-methodo" href="#" style="color:var(--info);font-weight:600">Méthodologie,
-sources et vie privée</a>
+sources et vie privée</a>__SOUTIEN__
 </footer>
 <div id="methodo-src" style="display:none">
 <p class="name" style="font-size:18px;padding-right:90px">Méthodologie, sources et vie privée</p>
@@ -2004,11 +2008,23 @@ def logo_uri():
     return _logo_uri
 
 
+def soutien_html():
+    """Le lien « Soutenir » du pied de page — rien du tout si pas d'adresse."""
+    if not SOUTIEN_URL:
+        return ""
+    return ('<br><a href="' + SOUTIEN_URL + '" target="_blank" rel="noopener" '
+            'style="color:var(--brand);font-weight:600">&#9829; Soutenir la '
+            'Boussole</a> — l\'application est gratuite, sans publicité ni '
+            'traçage ; votre soutien finance son hébergement et ses '
+            'améliorations.')
+
+
 def build_page():
     """Page autonome (double-clic) : données incluses, pas de service worker."""
     _, payload = make_payload()
     return (PAGE.replace("__PAYLOAD__", payload).replace("__PWA__", "")
-            .replace("__LOGO__", logo_uri()))
+            .replace("__LOGO__", logo_uri())
+            .replace("__SOUTIEN__", soutien_html()))
 
 
 # ---------------------------------------------------------------------------
@@ -2123,7 +2139,8 @@ def build_site():
     site = os.path.join(os.path.dirname(os.path.abspath(__file__)), "site")
     os.makedirs(site, exist_ok=True)
     shell = (PAGE.replace("__PAYLOAD__", PAYLOAD_FETCH)
-             .replace("__PWA__", PWA_HEAD).replace("__LOGO__", logo_uri()))
+             .replace("__PWA__", PWA_HEAD).replace("__LOGO__", logo_uri())
+             .replace("__SOUTIEN__", soutien_html()))
     ecrits = []
     for nom, contenu in [("index.html", shell), ("donnees.json", payload),
                          ("manifest.webmanifest", MANIFEST), ("sw.js", SW_JS)]:
