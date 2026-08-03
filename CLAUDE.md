@@ -161,7 +161,11 @@ Résultat vérifié : 107 installations, « données MSSS en direct ».
 
 ## Refonte v2 (2 août 2026) — trois écrans
 - Accueil orienté besoin : « Que cherchez-vous ? » avec 3 tuiles (soins
-  maintenant → tri temps total + localisation ; guide ; liste en direct),
+  maintenant → tri DISTANCE + localisation — changé le 2 août soir : le
+  temps total déroutait, « position activée » doit montrer le plus proche
+  d'abord ; le tri temps total reste un choix explicite du menu, y compris
+  pour le bouton « voir les urgences » du guide qui est passé à distance
+  aussi ; guide ; liste en direct),
   bandeau 911/988/811, pastilles d'en-tête (fraîcheur du relevé « il y a
   X min », nombre d'urgences, position — cliquable). Clic sur le titre =
   retour accueil. La liste ne s'affiche qu'après un choix.
@@ -227,6 +231,71 @@ Résultat vérifié : 107 installations, « données MSSS en direct ».
   fourchette, quand partir, distances, tendances, résumé pondéré), ce que
   l'outil ne fait pas, vie privée. À maintenir en phase avec les calculs :
   toute modification d'une formule doit être répercutée ici.
+
+- Ville mémorisée (2 août 2026) : quand l'utilisateur choisit sa ville dans
+  la liste de repli, elle est retenue en localStorage (`bousville`, appareil
+  seulement). À l'ouverture suivante : position active automatiquement,
+  pastille « 📍 Ville ». Le choix de ville se fait dans une FENÊTRE
+  par-dessus l'écran (`ouvrirChoixVille`) — pas dans le sélecteur de la
+  barre, invisible depuis l'accueil (bug corrigé le 2 août soir : cliquer
+  « Activer ma position » depuis l'accueil ne montrait rien quand le GPS
+  échouait). Clic sur la pastille : GPS si pas de position, sinon fenêtre
+  de changement de ville. Ordre de `locate()` : GPS → ville mémorisée →
+  fenêtre de choix. La position GPS, elle, n'est JAMAIS
+  enregistrée. Textes de vie privée (note + méthodologie) mis à jour en
+  conséquence. Pas de géolocalisation par IP (refusée : l'IP partirait vers
+  un tiers, contraire à la promesse de confidentialité).
+
+## Refonte v3 (2 août 2026, soir) — maquette « parcours urgences »
+Implémentation de la maquette Claude Design remise par l'utilisateur
+(~/Downloads/maquette-parcours-urgences/). Trois écrans avec onglets
+« 1 · Orienter / 2 · Choisir / 3 · Y aller » :
+- Écran 1 : héros « Où aller, maintenant ? », triage 3 cartes (911 rouge /
+  811+guide / « Besoin de voir quelqu'un » bleu → écran 2), ligne 988,
+  carte « Recommandé près de vous » (meilleur temps total si position,
+  sinon bouton d'activation) et carte « Le réseau en ce moment »
+  (décompte fluide/chargé/débordé par indice, moyenne pondérée, attente
+  totale, top régions cliquables, fraîcheur mono).
+- Écran 2 : barre en pilules, ligne « N lieux · triés par X » + légende à
+  points, cartes de liste façon maquette (type · km en mono, nom, grosse
+  fourchette colorée à droite, jauge, état · occupation, Détails → /
+  + Comparer). Carte SVG et comparateur inchangés.
+- Écran 3 : la fiche est un ÉCRAN (plus un voile) — retour, tuiles stats
+  (fourchette en tuile teintée brand), « Ce qui vous attend » (chronologie
+  triage/attente/sortie), estimation + quand partir + dernières heures +
+  affluence par heure (12 barres bicolores, creux/pointe), colonne droite :
+  itinéraire (pilule pleine), favori, « À apporter », note source.
+- Identité : logo réel (rosace extraite et réduite en pur Python →
+  logo_rosace.png, embarquée en data-URI via __LOGO__), bleu #16468C,
+  chiffres en mono système, fond papier. PAS de Google Fonts (vie privée) —
+  polices système. Adaptations honnêtes vs maquette : fourchettes au lieu
+  de chiffres uniques, pas de filtres 24h/pédiatrie (données absentes),
+  pas d'alerte « si l'attente baisse » (pas de serveur), CLSC au lieu de
+  « plages libres en clinique ».
+- Le guide vit en overlay (openGuide, contenu dans #guide-src) ; voiles
+  conservés pour guide/méthodo/comparateur/choix de ville.
+- Urgences spécialisées (2 août soir, signalé par l'utilisateur : l'IUSMM
+  était « recommandé » depuis Longueuil) : vocation() détecte par nom
+  (SANTÉ MENTALE/DOUGLAS ; CARDIOLOGIE/PNEUMOLOGIE ; SAINTE-JUSTINE/POUR
+  ENFANTS — attention, PAS le mot « enfant » seul : Enfant-Jésus est un
+  hôpital général). Étiquetées dans la liste (« Urgence santé mentale »)
+  et la fiche, exclues de « Recommandé près de vous » (meilleurGeneral()),
+  note affichée si une spécialisée aurait été première. Documenté dans la
+  méthodologie.
+- Recommandation avec garde-fous (2 août soir, signalé par l'utilisateur :
+  Coaticook à 105 km « recommandé » depuis Saint-Hyacinthe pour ~20 min de
+  gain) : meilleurGeneral() limite les candidats au rayon (plus proche
+  + 60 km, min 80 km) et n'accepte un hôpital plus loin que le plus proche
+  que si le gain de temps total ≥ 45 min (sinon → le plus proche). La
+  phrase de la carte explique le choix (« le plus proche… » ou « ≈ X de
+  moins que Y, pourtant plus proche »). Règle documentée dans la
+  méthodologie. Seuils : 60/80 km et 45 min — cohérents avec la fourchette
+  ±25 % des estimations.
+- PIÈGE d'init corrigé : reprendreVille() doit être appelé APRÈS
+  l'attachement des écouteurs (il remplace #loc par le sélecteur de ville,
+  et un addEventListener sur un élément disparu tuait toute l'init).
+- PIÈGE d'échappement : dans PAGE, les emojis \\uD83D... doivent avoir un
+  DOUBLE antislash, sinon Python crée des demi-surrogates invalides.
 
 ## Contraintes non négociables
 - Rester informatif, jamais diagnostique (éviter le statut d'instrument médical

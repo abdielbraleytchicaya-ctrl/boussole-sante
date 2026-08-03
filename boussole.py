@@ -71,6 +71,9 @@ SITE_MODE = "--site" in sys.argv
 # Mode servir : génère le site puis le sert sur http://localhost:8765 pour
 # tester la PWA en local (les service workers exigent HTTPS ou localhost).
 SERVE_MODE = "--servir" in sys.argv
+# Avec --reseau en plus : le serveur écoute aussi sur le réseau local, pour
+# tester depuis un téléphone connecté au même Wi-Fi.
+LAN_MODE = "--reseau" in sys.argv
 
 # ---------------------------------------------------------------------------
 # Correspondance établissement -> région (approximative, pour le regroupement)
@@ -606,165 +609,269 @@ PAGE = """<!DOCTYPE html>
 <title>Boussole santé — État des urgences du Québec</title>
 __PWA__
 <style>
-:root{--bg:#f6f5f1;--card:#fff;--ink:#1c1c1a;--mut:#6d6c66;--line:#e3e1d9;
---ok:#0f6e56;--okbg:#e1f5ee;--warn:#854f0b;--warnbg:#faeeda;--bad:#a32d2d;--badbg:#fcebeb;
---info:#185fa5;--infobg:#e7f0fa;--voile:rgba(28,28,26,.45);}
+:root{--bg:#f6f4ee;--card:#fdfcf9;--ink:#23252b;--mut:#6a6d76;--line:#e2e0d8;
+--brand:#16468C;--brand-dark:#0f3369;--brand-tint:#e9eef7;--brand-on:#F5F9FF;
+--fluide:#0d7f5f;--charge:#a86f0e;--deborde:#c03d2e;
+--ok:#0d7f5f;--okbg:#e6f3ee;--warn:#a86f0e;--warnbg:#f8efdd;
+--bad:#c03d2e;--badbg:#fdeeea;--info:#16468C;--infobg:#e9eef7;
+--voile:rgba(30,32,40,.45);
+--mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;}
 @media (prefers-color-scheme:dark){
-:root{--bg:#181913;--card:#242520;--ink:#e9e7de;--mut:#a4a297;--line:#3b3c33;
---ok:#5ac7a0;--okbg:#143327;--warn:#e9b566;--warnbg:#392c12;--bad:#f09090;--badbg:#3c1b1b;
---info:#8fbce9;--infobg:#1a2c40;--voile:rgba(0,0,0,.6);}
+:root{--bg:#15171c;--card:#1e2128;--ink:#e7e8ec;--mut:#9aa0ab;--line:#33373f;
+--brand:#82aae8;--brand-dark:#a8c4f0;--brand-tint:#1d2b45;--brand-on:#0c1a30;
+--fluide:#3bb890;--charge:#d9a34e;--deborde:#e0705f;
+--ok:#3bb890;--okbg:#15332a;--warn:#d9a34e;--warnbg:#3a2e13;
+--bad:#e0705f;--badbg:#3d1e19;--info:#82aae8;--infobg:#1d2b45;
+--voile:rgba(0,0,0,.62);}
 }
 *{box-sizing:border-box;margin:0;}
-body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);
-color:var(--ink);line-height:1.5;padding:24px 16px 64px;}
-main{max-width:760px;margin:0 auto;}
-h1{font-size:22px;font-weight:600;}
-.sub{color:var(--mut);font-size:14px;margin:4px 0 20px;}
-.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
-input,select,button{font:inherit;padding:9px 12px;border:1px solid var(--line);
-border-radius:8px;background:var(--card);}
-input{flex:1;min-width:200px;}
-button{cursor:pointer;}
-button:hover{border-color:var(--mut);}
-.notice{background:var(--warnbg);color:var(--warn);border-radius:8px;
-padding:10px 14px;font-size:13px;margin-bottom:16px;}
-.guide{background:var(--card);border:1px solid var(--line);border-radius:12px;
-padding:6px;margin-bottom:16px;}
-#gtoggle{width:100%;text-align:left;font-weight:600;border:none;}
-#gbody{padding:4px 12px 12px;}
-.alarm{background:var(--badbg);color:var(--bad);border-radius:8px;
-padding:10px 14px;font-size:13px;margin:10px 0;line-height:1.55;}
-.qbtn{display:block;width:100%;text-align:left;margin-top:8px;}
-.gq{font-weight:600;margin-top:12px;}
-.gres{background:var(--okbg);border-radius:8px;padding:12px 14px;
-font-size:14px;margin-top:10px;line-height:1.6;}
-.gnote{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.5;}
-h1{cursor:pointer;}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px;}
-.chip{font-size:12px;padding:4px 11px;border-radius:999px;background:var(--card);
-border:1px solid var(--line);color:var(--mut);}
+body{font-family:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+background:var(--bg);color:var(--ink);line-height:1.5;padding:28px 20px 64px;
+-webkit-font-smoothing:antialiased;}
+main{max-width:1080px;margin:0 auto;}
+a{color:var(--brand);text-decoration:none;}
+.mono{font-family:var(--mono);}
+.entete{display:flex;align-items:center;justify-content:space-between;
+gap:14px;flex-wrap:wrap;}
+.marque{display:flex;align-items:center;gap:11px;cursor:pointer;}
+.marque img{width:40px;height:40px;}
+.marque b{font-size:20px;font-weight:700;letter-spacing:-0.02em;color:var(--brand);}
+.tag{font-family:var(--mono);font-size:12px;color:var(--mut);}
+.onglets{display:flex;gap:5px;padding:4px;background:var(--card);
+border:1px solid var(--line);border-radius:999px;}
+.onglet{font:inherit;font-size:13.5px;font-weight:600;padding:8px 15px;
+border-radius:999px;border:none;background:transparent;color:var(--mut);
+cursor:pointer;letter-spacing:-0.01em;}
+.onglet.on{background:var(--ink);color:var(--bg);}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 20px;}
+.chip{font-size:12px;font-family:var(--mono);padding:4px 11px;
+border-radius:999px;background:var(--card);border:1px solid var(--line);
+color:var(--mut);}
 .chip.ok{background:var(--okbg);color:var(--ok);border-color:transparent;}
 .chip.warn{background:var(--warnbg);color:var(--warn);border-color:transparent;}
 #chip-pos{cursor:pointer;}
-.tuile{display:flex;gap:12px;align-items:center;width:100%;text-align:left;
-background:var(--card);border:1px solid var(--line);border-radius:12px;
-padding:14px 16px;margin-bottom:10px;cursor:pointer;font:inherit;}
-.tuile:hover{border-color:var(--mut);}
-.tuile.principale{border:2px solid var(--ok);}
-.tuile .ic{font-size:22px;flex:none;}
-.tuile b{font-size:15px;display:block;}
-.tuile span{font-size:12.5px;color:var(--mut);}
-.alarme{background:var(--badbg);color:var(--bad);border-radius:10px;
-padding:10px 14px;font-size:13px;margin-top:14px;line-height:1.55;}
-.legende{font-size:12px;color:var(--mut);margin:2px 0 12px;}
-.jauge{height:6px;background:var(--line);border-radius:999px;margin-top:9px;
+.c20{background:var(--card);border:1px solid var(--line);border-radius:20px;
+padding:28px;}
+.kick{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;
+text-transform:uppercase;color:var(--mut);}
+.h1g{margin:12px 0 8px;font-size:38px;line-height:1.06;letter-spacing:-0.03em;
+font-weight:600;}
+.sous{font-size:15.5px;color:var(--mut);max-width:54ch;}
+.triage{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+gap:12px;margin-top:26px;}
+.tcard{border-radius:16px;padding:19px;display:flex;flex-direction:column;
+gap:7px;font:inherit;text-align:left;color:var(--ink);}
+.tcard .tt{font-size:13px;font-weight:600;}
+.tcard .td{font-size:16.5px;font-weight:600;letter-spacing:-0.01em;line-height:1.3;}
+.tcard .tn{margin-top:8px;font-family:var(--mono);font-size:21px;font-weight:500;}
+.t911{border:1px solid var(--bad);background:var(--badbg);}
+.t911 .tt,.t911 .tn{color:var(--bad);}
+.t811{border:1px solid var(--line);background:var(--bg);cursor:pointer;}
+.t811 .tt{color:var(--mut);}
+.tbrand{border:1.5px solid var(--brand);background:var(--brand);
+color:var(--brand-on);cursor:pointer;}
+.tbrand .tt{opacity:0.78;}
+.tbrand:hover{background:var(--brand-dark);border-color:var(--brand-dark);}
+.duo{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-top:16px;}
+@media(max-width:840px){.duo{grid-template-columns:1fr;}
+.h1g{font-size:30px;}.c20{padding:22px;}}
+.bigmono{font-family:var(--mono);font-weight:500;line-height:1;color:var(--brand);}
+.pill{font:inherit;font-size:14px;font-weight:600;padding:11px 18px;
+border-radius:999px;cursor:pointer;}
+.pill-n{border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);}
+.pill-n:hover{opacity:.85;}
+.pill-b{border:none;background:var(--brand);color:var(--brand-on);}
+.pill-b:hover{background:var(--brand-dark);}
+.pill-o{border:1.5px solid var(--line);background:transparent;color:var(--ink);}
+.pill-o:hover{border-color:var(--mut);}
+.ligneres{display:flex;justify-content:space-between;gap:10px;font-size:14px;
+margin:10px 0 8px;color:var(--mut);flex-wrap:wrap;}
+.ligneres b{color:var(--ink);font-weight:600;}
+.legdots{display:flex;gap:14px;font-size:13px;color:var(--mut);align-items:center;}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block;
+margin-right:5px;vertical-align:baseline;}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+input,select,button{font:inherit;}
+input[type=search],select{padding:11px 16px;border:1px solid var(--line);
+border-radius:999px;background:var(--card);color:var(--ink);font-size:14px;}
+input[type=search]{flex:1;min-width:210px;}
+.bar button{padding:11px 16px;border:1px solid var(--line);border-radius:999px;
+background:var(--card);color:var(--ink);font-size:14px;font-weight:500;
+cursor:pointer;}
+.bar button:hover{border-color:var(--mut);}
+.notice{background:var(--warnbg);color:var(--warn);border-radius:12px;
+padding:10px 14px;font-size:13px;margin-bottom:16px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+padding:20px 22px;margin-bottom:10px;cursor:pointer;}
+.card:hover{border-color:var(--mut);}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;}
+.ktype{font-size:12px;font-family:var(--mono);color:var(--mut);}
+.name{font-weight:600;font-size:18px;letter-spacing:-0.015em;line-height:1.25;
+margin-top:3px;}
+.attq{font-family:var(--mono);font-size:19px;font-weight:500;line-height:1.05;
+white-space:nowrap;text-align:right;}
+.attqs{font-size:11px;color:var(--mut);margin-top:4px;text-align:right;}
+.etab{color:var(--mut);font-size:12px;margin-top:2px;}
+.badge{font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;
+white-space:nowrap;font-family:var(--mono);}
+.b-ok{background:var(--okbg);color:var(--ok);}
+.b-warn{background:var(--warnbg);color:var(--warn);}
+.b-bad{background:var(--badbg);color:var(--bad);}
+.jauge{height:6px;background:var(--line);border-radius:999px;margin-top:14px;
 overflow:hidden;}
 .jauge i{display:block;height:6px;border-radius:999px;}
-.ligne{font-size:13px;color:var(--mut);margin-top:3px;}
-.dist{font-size:12.5px;color:var(--mut);white-space:nowrap;font-weight:600;}
-.fav{color:var(--warn);}
-.binfo{background:var(--infobg);border-radius:10px;padding:12px 14px;margin-top:10px;
-line-height:1.55;color:var(--info);font-size:13.5px;}
-#carte svg{width:100%;height:auto;background:var(--card);
-border:1px solid var(--line);border-radius:12px;display:block;}
-#resume{margin-top:18px;}
-.regchip{color:var(--info);font-weight:600;cursor:pointer;}
+.basrow{margin-top:10px;display:flex;justify-content:space-between;gap:10px;
+font-size:12.5px;color:var(--mut);flex-wrap:wrap;}
+.det{color:var(--brand);font-weight:600;}
 .cmp{color:var(--mut);font-weight:600;cursor:pointer;}
 .cmp.on{color:var(--ok);}
+.rg{font-size:12px;font-family:var(--mono);font-weight:500;color:var(--mut);
+text-transform:uppercase;letter-spacing:.06em;margin:22px 0 8px;}
+.stats{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;
+font-size:13px;color:var(--mut);}
+footer{color:var(--mut);font-size:12px;margin-top:36px;line-height:1.7;}
+.voile{position:fixed;inset:0;background:var(--voile);display:flex;
+align-items:flex-end;justify-content:center;z-index:50;}
+.fiche{background:var(--bg);border-radius:20px 20px 0 0;max-width:660px;
+width:100%;max-height:88vh;overflow:auto;padding:24px 20px 32px;}
+@media(min-width:640px){.voile{align-items:center;padding:24px;}
+.fiche{border-radius:20px;}}
+.fx{float:right;font-size:14px;padding:8px 13px;border:1px solid var(--line);
+border-radius:999px;background:var(--card);color:var(--ink);cursor:pointer;}
+.fh{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;
+text-transform:uppercase;color:var(--mut);margin:24px 0 10px;font-weight:500;}
+.fgrille{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+gap:10px;}
+.fstat{background:var(--bg);border-radius:14px;padding:16px;}
+.fstat b{font-size:24px;display:block;font-family:var(--mono);font-weight:500;}
+.fstat span{font-size:12px;color:var(--mut);line-height:1.35;display:block;
+margin-top:5px;}
+.fstat.acc{background:var(--brand-tint);}
+.fstat.acc b,.fstat.acc span{color:var(--brand);}
+.fbtn{display:inline-block;margin-top:10px;margin-right:8px;padding:11px 17px;
+border:1.5px solid var(--line);border-radius:999px;background:var(--card);
+text-decoration:none;color:var(--ink);font-weight:600;font-size:14px;
+cursor:pointer;}
+.fbtn:hover{border-color:var(--mut);}
+.fbtn.acc{background:var(--brand);border-color:var(--brand);color:var(--brand-on);}
+.gq{font-weight:600;margin-top:12px;}
+.qbtn{display:block;width:100%;text-align:left;margin-top:8px;font:inherit;
+padding:12px 15px;border:1px solid var(--line);border-radius:12px;
+background:var(--card);color:var(--ink);cursor:pointer;font-size:14.5px;}
+.qbtn:hover{border-color:var(--mut);}
+.gres{background:var(--okbg);border-radius:12px;padding:14px 16px;
+font-size:14px;margin-top:10px;line-height:1.6;}
+.gnote{font-size:12px;color:var(--mut);margin-top:8px;line-height:1.5;}
+.alarm{background:var(--badbg);color:var(--bad);border-radius:12px;
+padding:12px 15px;font-size:13px;margin:10px 0;line-height:1.55;}
+.tr{display:flex;gap:2px;align-items:flex-end;height:26px;margin-top:10px;}
+.tr i{flex:1;background:var(--line);border-radius:2px;min-height:2px;}
+.tr i.now{background:var(--charge);}
+.trh i{background:var(--brand);opacity:.4;}
+.trh i.der{opacity:1;}
+.trcap{color:var(--mut);font-size:12.5px;margin-top:6px;line-height:1.5;}
+.trcap b{color:var(--ink);}
+.aff{display:flex;align-items:flex-end;gap:6px;height:104px;margin-top:18px;}
+.aff>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
+height:100%;justify-content:flex-end;}
+.aff .ab{width:100%;border-radius:5px 5px 2px 2px;}
+.aff .al{font-family:var(--mono);font-size:10px;color:var(--mut);}
+.binfo{background:var(--infobg);border-radius:14px;padding:15px 17px;
+margin-top:10px;line-height:1.55;color:var(--info);font-size:13.5px;}
+.bvert{background:var(--okbg);border-radius:14px;padding:15px 17px;margin-top:8px;
+line-height:1.55;color:var(--ok);font-size:13.5px;}
+.timel{display:grid;grid-template-columns:92px 1fr;gap:16px;padding:12px 0;
+border-bottom:1px solid var(--line);font-size:14.5px;}
+.timel:last-child{border-bottom:none;}
+.timel span:first-child{font-family:var(--mono);font-size:13px;color:var(--mut);}
+.duo3{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start;}
+@media(max-width:840px){.duo3{grid-template-columns:1fr;}}
+.retour{font-family:var(--mono);font-size:12px;color:var(--mut);background:none;
+border:none;padding:0;cursor:pointer;}
+#carte svg{width:100%;height:auto;background:var(--card);
+border:1px solid var(--line);border-radius:18px;display:block;}
+.cartenote{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:2;}
+.cartenote button{padding:5px 12px;font-size:12px;border-radius:999px;
+border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;}
 .compbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);
 background:var(--ink);color:var(--bg);border-radius:999px;
 padding:8px 10px 8px 16px;display:flex;gap:10px;align-items:center;
 font-size:13.5px;z-index:40;white-space:nowrap;}
-.compbar button{font-size:13px;padding:6px 12px;border:none;border-radius:999px;}
+.compbar button{font-size:13px;padding:6px 13px;border:none;border-radius:999px;
+background:var(--bg);color:var(--ink);cursor:pointer;}
 .compwrap{overflow-x:auto;margin-top:12px;}
 .comptab{width:100%;border-collapse:collapse;font-size:13px;}
-.comptab th,.comptab td{padding:8px 8px;border-bottom:1px solid var(--line);
+.comptab th,.comptab td{padding:9px 8px;border-bottom:1px solid var(--line);
 text-align:left;vertical-align:top;}
 .comptab th{font-size:12px;line-height:1.35;}
+.comptab td{font-family:var(--mono);font-size:12.5px;}
 .comptab td:first-child,.comptab th:first-child{color:var(--mut);
-font-size:12px;min-width:105px;}
+font-size:12px;min-width:105px;font-family:inherit;}
 .comptab td.best{background:var(--okbg);color:var(--ok);font-weight:600;}
-.cartenote{font-size:12px;color:var(--mut);margin:8px 0 0;line-height:2;}
-.cartenote button{padding:5px 10px;font-size:12px;}
-.bvert{background:var(--okbg);border-radius:10px;padding:12px 14px;margin-top:8px;
-line-height:1.55;color:var(--ok);font-size:13.5px;}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;
-padding:14px 16px;margin-bottom:10px;cursor:pointer;}
-.card:hover{border-color:var(--mut);}
-.det{color:var(--ok);font-weight:600;}
-.voile{position:fixed;inset:0;background:var(--voile);display:flex;
-align-items:flex-end;justify-content:center;z-index:50;}
-.fiche{background:var(--bg);border-radius:16px 16px 0 0;max-width:640px;
-width:100%;max-height:88vh;overflow:auto;padding:20px 18px 30px;}
-@media(min-width:640px){.voile{align-items:center;padding:24px;}
-.fiche{border-radius:16px;}}
-.fx{float:right;font-size:14px;}
-.fh{font-size:13px;font-weight:600;color:var(--mut);text-transform:uppercase;
-letter-spacing:.04em;margin:18px 0 8px;}
-.fgrille{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-gap:8px;}
-.fstat{background:var(--card);border:1px solid var(--line);border-radius:10px;
-padding:10px 12px;}
-.fstat b{font-size:20px;display:block;}
-.fstat span{font-size:12px;color:var(--mut);line-height:1.35;display:block;}
-.fbtn{display:inline-block;margin-top:10px;margin-right:8px;padding:9px 14px;
-border:1px solid var(--line);border-radius:8px;background:var(--card);
-text-decoration:none;color:var(--ink);font-weight:600;font-size:14px;}
-.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
-.name{font-weight:600;font-size:15px;}
-.etab{color:var(--mut);font-size:12px;margin-top:2px;}
-.badge{font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap;}
-.b-ok{background:var(--okbg);color:var(--ok);}
-.b-warn{background:var(--warnbg);color:var(--warn);}
-.b-bad{background:var(--badbg);color:var(--bad);}
-.stats{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;
-font-size:13px;color:var(--mut);}
-.rg{font-size:13px;font-weight:600;color:var(--mut);text-transform:uppercase;
-letter-spacing:.04em;margin:22px 0 8px;}
-.tr{display:flex;gap:2px;align-items:flex-end;height:26px;margin-top:10px;}
-.tr i{flex:1;background:var(--line);border-radius:1px;min-height:2px;}
-.tr i.now{background:var(--warn);}
-.trh i{background:#7aa9d8;opacity:.75;}
-.trh i.der{background:var(--info);opacity:1;}
 .methodo p{font-size:13.5px;line-height:1.6;margin-top:6px;}
 .methodo p.fh{margin-top:18px;}
 .methodo p.name{margin-top:0;}
-.trcap{color:var(--mut);font-size:12px;margin-top:4px;}
-.trcap b{color:var(--ink);}
-footer{color:var(--mut);font-size:12px;margin-top:32px;line-height:1.6;}
+.fav{color:var(--charge);}
+.regchip{color:var(--brand);font-weight:600;cursor:pointer;}
+.resrow{display:flex;justify-content:space-between;font-size:14px;
+padding:5px 0;}
+.resrow span:first-child{color:var(--mut);}
+.resrow .mono{font-size:14px;}
+.hr{height:1px;background:var(--line);margin:14px 0;}
 </style>
 </head>
 <body>
 <main>
-<h1 id="titre" title="Revenir à l'accueil">&#129517; Boussole santé</h1>
+<div class="entete">
+  <div class="marque" id="titre" title="Revenir à l'accueil">
+    <img src="__LOGO__" alt="">
+    <div><b>Boussole Santé Québec</b>
+    <div class="tag">urgences en temps réel</div></div>
+  </div>
+  <div class="onglets">
+    <button type="button" class="onglet on" id="ong1">1 · Orienter</button>
+    <button type="button" class="onglet" id="ong2">2 · Choisir</button>
+    <button type="button" class="onglet" id="ong3">3 · Y aller</button>
+  </div>
+</div>
 <div class="chips" id="chips"></div>
 <div id="notice"></div>
-<div id="accueil">
-  <p class="gq" style="font-size:17px;margin:2px 0 12px;">Que cherchez-vous&nbsp;?</p>
-  <button type="button" class="tuile principale" id="t-soins">
-    <span class="ic">&#9937;</span>
-    <span><b>Besoin de soins maintenant</b>
-    <span>Les urgences autour de vous, de la plus rapide à la plus éloignée</span></span>
-  </button>
-  <button type="button" class="tuile" id="t-guide">
-    <span class="ic">&#129517;</span>
-    <span><b>Où aller pour mon besoin&nbsp;?</b>
-    <span>Pharmacie, 811, clinique ou urgence — un guide informatif</span></span>
-  </button>
-  <button type="button" class="tuile" id="t-liste">
-    <span class="ic">&#128202;</span>
-    <span><b>État des urgences en direct</b>
-    <span id="t-liste-sub">Toutes les urgences du Québec, mises à jour chaque heure</span></span>
-  </button>
-  <div class="alarme"><b>Urgence vitale&nbsp;: composez le 911.</b>
-  Détresse ou idées suicidaires&nbsp;: appelez ou textez le 988.
-  Doute sur votre état&nbsp;: 811, une infirmière répond 24&nbsp;h/7.</div>
-  <div id="resume"></div>
+<div id="ecran1">
+  <div class="c20" style="padding:36px 32px">
+    <div class="kick">Commencez ici</div>
+    <h1 class="h1g">Où aller, maintenant&nbsp;?</h1>
+    <p class="sous">L'urgence n'est pas toujours le bon endroit — la Boussole
+    vous montre où l'attente est la plus courte près de chez vous, à partir
+    des données publiques du MSSS.</p>
+    <div class="triage">
+      <div class="tcard t911">
+        <div class="tt">Urgence vitale</div>
+        <div class="td">Douleur à la poitrine, perte de conscience,
+        saignement majeur</div>
+        <div class="tn">Appelez le 911</div>
+      </div>
+      <button type="button" class="tcard t811" id="t-guide">
+        <div class="tt">Doute, conseil, autre besoin</div>
+        <div class="td">Fièvre, symptômes flous, question sur un médicament</div>
+        <div class="tn">Info-Santé 811 · guide&nbsp;→</div>
+      </button>
+      <button type="button" class="tcard tbrand" id="t-soins">
+        <div class="tt">Besoin de voir quelqu'un</div>
+        <div class="td">Blessure, infection, état qui ne s'améliore pas</div>
+        <div class="tn">Voir où aller&nbsp;→</div>
+      </button>
+    </div>
+    <p class="gnote" style="margin-top:14px">Détresse ou idées suicidaires&nbsp;:
+    appelez ou textez le <b>988</b>, 24&nbsp;h/7. En cas de doute sur votre
+    état&nbsp;: <b>811</b>, une infirmière répond en tout temps.</p>
+  </div>
+  <div class="duo">
+    <div class="c20" id="recomm"></div>
+    <div class="c20" id="reseau"></div>
+  </div>
 </div>
-<div id="appli" style="display:none">
-<div class="guide">
-  <button id="gtoggle" type="button">&#129517; Où aller ? — guide des ressources (informatif)</button>
-  <div id="gbody" style="display:none">
+<div id="ecran2" style="display:none">
+<div id="guide-src" style="display:none">
     <p class="gnote">Ce guide ne donne pas d'avis médical et n'évalue pas vos
     symptômes : vous choisissez vous-même la situation qui vous ressemble.
     Vos réponses ne sont ni enregistrées ni transmises. En cas de doute,
@@ -776,30 +883,34 @@ footer{color:var(--mut);font-size:12px;margin-top:32px;line-height:1.6;}
     saignement qui ne s'arrête pas &middot; réaction allergique qui
     s'aggrave. En détresse ou idées suicidaires : appelez ou textez le
     <b>988</b>, 24&nbsp;h/7.</div>
-    <div id="gq"></div>
-  </div>
 </div>
 <div class="bar">
-  <input id="q" type="search" placeholder="Rechercher un hôpital ou une ville…">
+  <input id="q" type="search" placeholder="Hôpital ou ville…">
   <select id="reg"><option value="">Toutes les régions</option></select>
   <select id="sort">
+    <option value="distance">Trier : distance (le plus proche d'abord)</option>
+    <option value="total">Trier : temps total (trajet + attente)</option>
     <option value="taux">Trier : occupation des civières</option>
     <option value="attente_pec">Trier : personnes en attente</option>
     <option value="dms_ambulatoire">Trier : séjour moyen en salle d'attente</option>
-    <option value="distance">Trier : distance (le plus proche d'abord)</option>
-    <option value="total">Trier : temps total (trajet + attente)</option>
     <option value="nom">Trier : nom</option>
   </select>
   <button id="loc" type="button">&#128205; Autour de moi</button>
   <button id="vue" type="button">&#128506; Carte</button>
+  <button id="gtoggle" type="button">&#129517; Guide</button>
 </div>
-<p class="legende">Jauge d'achalandage (civières occupées + personnes en attente) :
-<span style="color:#1d9e75">&#9679;</span> fluide&nbsp;
-<span style="color:#ef9f27">&#9679;</span> chargé&nbsp;
-<span style="color:#e24b4a">&#9679;</span> débordé</p>
+<div class="ligneres">
+  <span id="nres"></span>
+  <span class="legdots">
+    <span><span class="dot" style="background:var(--fluide)"></span>fluide</span>
+    <span><span class="dot" style="background:var(--charge)"></span>chargé</span>
+    <span><span class="dot" style="background:var(--deborde)"></span>débordé</span>
+  </span>
+</div>
 <div id="carte" style="display:none"></div>
 <div id="list"></div>
 </div>
+<div id="ecran3" style="display:none"></div>
 <div id="compbar" class="compbar" style="display:none"></div>
 <footer>
 Source : Fichier horaire de la situation à l'urgence, Console provinciale des urgences (CPU),
@@ -862,6 +973,16 @@ relevé à celui d'environ 3 heures avant (écart d'au moins 3 personnes et
 <p><b>Résumé provincial</b>&nbsp;: l'occupation moyenne est pondérée (toutes
 les civières occupées divisées par toutes les civières fonctionnelles), sur
 les seules urgences diffusées par le MSSS.</p>
+<p><b>«&nbsp;Recommandé près de vous&nbsp;»</b>&nbsp;: parmi les urgences
+générales d'un rayon réaliste (l'hôpital le plus proche + 60&nbsp;km), celle
+au temps total estimé le plus court. Un hôpital plus éloigné que le plus
+proche n'est proposé que s'il fait gagner au moins 45&nbsp;minutes —
+en deçà, l'écart est plus petit que la marge d'erreur des estimations.</p>
+<p><b>Urgences spécialisées</b>&nbsp;: les urgences à vocation particulière
+(santé mentale, cardiologie-pneumologie, pédiatrie) sont reconnues par leur
+nom, étiquetées dans la liste et exclues de la carte
+«&nbsp;Recommandé près de vous&nbsp;», qui ne propose que des urgences
+générales. Elles restent visibles et consultables partout ailleurs.</p>
 
 <p class="fh">Ce que la Boussole ne fait pas</p>
 <p>Elle ne donne <b>aucun avis médical</b> et ne prédit pas votre attente
@@ -874,10 +995,12 @@ composez le 911&nbsp;; en cas de doute, le 811.</p>
 <p class="fh">Vie privée</p>
 <p>Aucun compte, aucun serveur de la Boussole, aucun traçage. Votre position
 est utilisée <b>uniquement dans votre navigateur</b> pour calculer des
-distances&nbsp;— elle n'est jamais enregistrée ni transmise. Vos favoris sont
-de simples noms d'hôpitaux gardés sur votre appareil. Le bouton
-«&nbsp;Itinéraire&nbsp;» ouvre votre application de cartes avec la
-<b>destination seulement</b>.</p>
+distances&nbsp;— elle n'est jamais transmise. La position GPS n'est jamais
+enregistrée&nbsp;; si vous choisissez votre ville dans la liste, ce choix est
+retenu sur votre appareil seulement, pour que la position soit active dès la
+prochaine visite. Vos favoris sont de simples noms d'hôpitaux gardés sur
+votre appareil. Le bouton «&nbsp;Itinéraire&nbsp;» ouvre votre application de
+cartes avec la <b>destination seulement</b>.</p>
 </div>
 </main>
 <script>
@@ -915,7 +1038,8 @@ function indice(d){
   if(!p.length)return null;
   return Math.round(p.reduce((a,b)=>a+b,0)/p.length);
 }
-function coulJauge(i){return i<85?'#1d9e75':(i<125?'#ef9f27':'#e24b4a');}
+function coulJauge(i){return i<85?'var(--fluide)':(i<125?'var(--charge)':'var(--deborde)');}
+function etatDe(i){return i==null?'':(i<85?'Fluide':(i<125?'Charg\u00e9':'D\u00e9bord\u00e9'));}
 /* Pastilles d'en-t\\u00eate : fra\\u00eecheur du relev\\u00e9, nombre
    d'urgences, \\u00e9tat de la position. */
 function chips(){
@@ -932,25 +1056,37 @@ function chips(){
   }
   h+='<span class="chip">'+DATA.length+' urgences</span>';
   h+='<span class="chip" id="chip-pos">'+
-    (POS?'\\u2713 Position activ\\u00e9e':'\\uD83D\\uDCCD Activer ma position')+'</span>';
+    (POS?(POSVILLE?'\\uD83D\\uDCCD '+POSVILLE:'\\u2713 Position activ\\u00e9e')
+        :'\\uD83D\\uDCCD Activer ma position')+'</span>';
   c.innerHTML=h;
   const cp=document.getElementById('chip-pos');
-  if(cp)cp.addEventListener('click',()=>{if(!POS)locate();});
+  if(cp)cp.addEventListener('click',()=>{
+    if(!POS)locate();
+    else ouvrirChoixVille();  /* changer de ville, depuis n'importe o\\u00f9 */
+  });
 }
 /* R\\u00e9sum\\u00e9 provincial : le pouls du Qu\\u00e9bec, calcul\\u00e9
    localement \\u00e0 partir des donn\\u00e9es d\\u00e9j\\u00e0 charg\\u00e9es.
    L'occupation moyenne est pond\\u00e9r\\u00e9e (total occup\\u00e9es /
    total fonctionnelles), pas une moyenne de pourcentages. */
-function resumeHtml(){
-  if(!DATA.length||META.source!=='msss')return '';
-  let occ=0,fonct=0,pres=0,att=0,deb=0;
+function fraicheurMin(){
+  if(!META.releve)return null;
+  const m=Math.round((Date.now()-new Date(META.releve).getTime())/60000);
+  return isNaN(m)?null:Math.max(0,m);
+}
+/* Carte \u00ab Le r\u00e9seau en ce moment \u00bb de l'\u00e9cran 1 :
+   d\u00e9compte fluide/charg\u00e9/d\u00e9bord\u00e9 + moyenne pond\u00e9r\u00e9e. */
+function reseauHtml(){
+  const k='<div class="kick">Le r\u00e9seau en ce moment</div>';
+  if(!DATA.length||META.source!=='msss')
+    return k+'<p class="gnote" style="margin-top:12px">Donn\u00e9es de d\u00e9monstration.</p>';
+  let occ=0,fonct=0,att=0,nf=0,nc=0,nd=0;
   const rT={},rN={};
   DATA.forEach(d=>{
     if(d.civ_occ!=null&&d.civ_fonct){occ+=d.civ_occ;fonct+=d.civ_fonct;}
-    if(d.presents!=null)pres+=d.presents;
     if(d.attente_pec!=null)att+=d.attente_pec;
     const i=indice(d);
-    if(i!=null&&i>=125)deb++;
+    if(i!=null){if(i<85)nf++;else if(i<125)nc++;else nd++;}
     if(d.taux!=null){rT[d.region]=(rT[d.region]||0)+d.taux;
       rN[d.region]=(rN[d.region]||0)+1;}
   });
@@ -958,29 +1094,132 @@ function resumeHtml(){
   const regs=Object.keys(rT).filter(r=>rN[r]>=2)
     .map(r=>({r:r,m:Math.round(rT[r]/rN[r])}))
     .sort((a,b)=>b.m-a.m).slice(0,3);
-  return '<p class="fh">En ce moment au Qu\\u00e9bec</p><div class="fgrille">'+
-    fstat(taux!=null?taux+' %':null,'occupation moyenne des civi\\u00e8res')+
-    fstat(pres?Math.round(pres).toLocaleString('fr-CA'):null,
-      'personnes dans les urgences')+
-    fstat(att?Math.round(att).toLocaleString('fr-CA'):null,
-      'en attente d\\u2019un m\\u00e9decin')+
-    fstat(deb,'urgence'+(deb>1?'s':'')+' en d\\u00e9bordement (jauge rouge)')+
-    '</div>'+
-    (regs.length?'<p class="trcap">R\\u00e9gions les plus charg\\u00e9es\\u00a0: '+
-      regs.map(x=>'<span class="regchip" data-region="'+x.r+'">'+x.r+
-      ' ('+x.m+'\\u00a0%)</span>').join(' \\u00b7 ')+'</p>':'')+
-    '<p class="trcap">Sur les '+DATA.length+' urgences diffus\\u00e9es par le '+
-    'MSSS \\u00b7 touchez une r\\u00e9gion pour voir ses h\\u00f4pitaux.</p>';
+  const min=fraicheurMin();
+  return k+
+    '<div style="display:flex;align-items:baseline;gap:10px;margin-top:16px">'+
+    '<span class="mono" style="font-size:38px;font-weight:500;line-height:1">'+DATA.length+'</span>'+
+    '<span style="font-size:14px;color:var(--mut)">urgences suivies</span></div>'+
+    '<div class="hr"></div>'+
+    '<div class="resrow"><span>Fluide</span><span class="mono" style="color:var(--fluide)">'+nf+'</span></div>'+
+    '<div class="resrow"><span>Charg\u00e9</span><span class="mono" style="color:var(--charge)">'+nc+'</span></div>'+
+    '<div class="resrow"><span>D\u00e9bord\u00e9</span><span class="mono" style="color:var(--deborde)">'+nd+'</span></div>'+
+    '<div class="hr"></div>'+
+    '<div class="resrow"><span>Occupation moyenne</span><span class="mono">'+(taux!=null?taux+' %':'n/d')+'</span></div>'+
+    '<div class="resrow"><span>En attente d\u2019un m\u00e9decin</span><span class="mono">'+Math.round(att).toLocaleString('fr-CA')+'</span></div>'+
+    (regs.length?'<p class="trcap" style="margin-top:10px">R\u00e9gions charg\u00e9es\u00a0: '+
+      regs.map(x=>'<span class="regchip" data-region="'+x.r+'">'+x.r+' ('+x.m+'\u00a0%)</span>').join(' \u00b7 ')+'</p>':'')+
+    '<p class="trcap mono" style="margin-top:8px;font-size:11px">'+
+    (min!=null?'Relev\u00e9 il y a '+min+' min \u00b7 source MSSS':'Source MSSS')+'</p>';
 }
-function goAccueil(){
-  document.getElementById('accueil').style.display='';
-  document.getElementById('appli').style.display='none';
+/* Urgences sp\u00e9cialis\u00e9es : list\u00e9es et \u00e9tiquet\u00e9es,
+   mais jamais recommand\u00e9es d'office \u00e0 tout le monde. */
+function vocation(d){
+  const n=d.installation.toUpperCase();
+  if(n.includes('SANT\u00c9 MENTALE')||n.includes('DOUGLAS'))
+    return 'sant\u00e9 mentale';
+  if(n.includes('CARDIOLOGIE')||n.includes('PNEUMOLOGIE'))
+    return 'cardiologie-pneumologie';
+  if(n.includes('SAINTE-JUSTINE')||n.includes('POUR ENFANTS'))
+    return 'p\u00e9diatrique';
+  return null;
+}
+/* Recommandation raisonnable : on ne consid\u00e8re que les urgences
+   g\u00e9n\u00e9rales dans un rayon r\u00e9aliste (le plus proche + 60 km,
+   minimum 80 km \u2014 assez pour les r\u00e9gions rurales), et un
+   h\u00f4pital plus \u00e9loign\u00e9 que le plus proche doit faire gagner
+   au moins 45 minutes de temps total, sinon le gain est plus petit que la
+   marge d'erreur de nos estimations. */
+function meilleurGeneral(){
+  const gens=DATA.filter(d=>!vocation(d));
+  if(!POS){
+    let b=null;
+    gens.forEach(d=>{if(d._total!=null&&(b==null||d._total<b._total))b=d;});
+    return b;
+  }
+  let proche=null;
+  gens.forEach(d=>{if(d._km!=null&&(proche==null||d._km<proche._km))proche=d;});
+  if(!proche)return null;
+  const dmax=Math.max(proche._km+60,80);
+  let best=null;
+  gens.forEach(d=>{
+    if(d._km==null||d._km>dmax||d._total==null)return;
+    if(best==null||d._total<best._total)best=d;
+  });
+  if(!best)return proche;
+  if(best!==proche&&proche._total!=null&&best._total>proche._total-45)
+    return proche;
+  return best;
+}
+function plusProcheGeneral(){
+  let p=null;
+  DATA.forEach(d=>{
+    if(vocation(d)||d._km==null)return;
+    if(p==null||d._km<p._km)p=d;
+  });
+  return p;
+}
+/* Carte \u00ab Recommand\u00e9 pr\u00e8s de vous \u00bb : le temps total
+   estim\u00e9 le plus court depuis la position, urgences g\u00e9n\u00e9rales
+   seulement. */
+function recommHtml(){
+  const k='<div class="kick">Recommand\u00e9 pr\u00e8s de vous</div>';
+  if(META.source!=='msss'||!DATA.length)
+    return k+'<p class="gnote" style="margin-top:12px">Disponible avec les donn\u00e9es en direct.</p>';
+  if(!POS){
+    return k+'<p style="margin-top:14px;font-size:15px;line-height:1.5">Activez '+
+      'votre position (ou choisissez votre ville) pour voir o\u00f9 le temps '+
+      'total \u2014 trajet + attente \u2014 est le plus court pour vous.</p>'+
+      '<button type="button" class="pill pill-b" style="margin-top:16px" '+
+      'data-loc="1">\\uD83D\\uDCCD Activer ma position</button>';
+  }
+  const best=meilleurGeneral();
+  if(!best)return k+'<p class="gnote" style="margin-top:12px">Pas assez de donn\u00e9es.</p>';
+  let bestAbs=null;
+  DATA.forEach(d=>{if(d._total!=null&&(bestAbs==null||d._total<bestAbs._total))bestAbs=d;});
+  const noteSpec=(bestAbs&&bestAbs!==best&&vocation(bestAbs))
+    ?'<p class="gnote">Les urgences sp\u00e9cialis\u00e9es (sant\u00e9 mentale, '+
+     'cardiologie, p\u00e9diatrie) ne sont pas recommand\u00e9es d\u2019office '+
+     '\u2014 elles restent dans la liste, \u00e9tiquet\u00e9es.</p>':'';
+  const b=estBornes(best);
+  const proche=plusProcheGeneral();
+  let raison='le temps total estim\u00e9 le plus court pr\u00e8s de chez vous';
+  if(proche&&best===proche){
+    raison='le plus proche de chez vous \u2014 et le meilleur temps total '+
+      'de votre secteur';
+  }else if(proche&&proche._total!=null&&best._total!=null){
+    raison='\u2248 '+fmtMin(proche._total-best._total)+' de moins que '+
+      proche.installation+', pourtant plus proche';
+  }
+  return k+
+    '<div style="margin-top:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">'+
+    '<div style="min-width:190px;flex:1">'+
+    '<div style="font-size:21px;font-weight:600;letter-spacing:-0.02em;line-height:1.2">'+best.installation+'</div>'+
+    '<div style="margin-top:6px;font-size:14px;color:var(--mut)">'+
+    Math.round(best._km)+' km \u00b7 ~'+fmtMin(best._route)+' de route \u00b7 '+raison+'</div></div>'+
+    '<div style="text-align:right"><div class="bigmono" style="font-size:32px">'+fmtMin(best._total)+'</div>'+
+    '<div style="font-size:12px;color:var(--mut);margin-top:4px">temps total estim\u00e9</div></div></div>'+
+    (b?'<p class="trcap">Dont '+fmtMin(b.lo)+' \u2013 '+fmtMin(b.hi)+' sur place '+
+      '(cas non prioritaire \u2014 le triage passe toujours en premier).</p>':'')+
+    '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">'+
+    '<button type="button" class="pill pill-n" data-fiche="'+best._i+'">Voir la fiche</button>'+
+    '<button type="button" class="pill pill-o" data-go2="1">Comparer les autres</button></div>'+noteSpec;
+}
+function majAccueil(){
+  const r=document.getElementById('reseau'),c=document.getElementById('recomm');
+  if(r)r.innerHTML=reseauHtml();
+  if(c)c.innerHTML=recommHtml();
+}
+let SCREEN=1,FICHE_SEL=null;
+function goScreen(n){
+  SCREEN=n;
+  [1,2,3].forEach(k=>{
+    document.getElementById('ecran'+k).style.display=(k===n)?'':'none';
+    document.getElementById('ong'+k).classList.toggle('on',k===n);
+  });
   window.scrollTo(0,0);
 }
-function goAppli(){
-  document.getElementById('accueil').style.display='none';
-  document.getElementById('appli').style.display='';
-}
+function goAccueil(){goScreen(1);}
+function goAppli(){goScreen(2);}
 /* Villes de repli si la g\\u00e9olocalisation du navigateur est refus\\u00e9e
    ou indisponible. Tout reste local : rien n'est jamais transmis. */
 const VILLES=[
@@ -1004,8 +1243,10 @@ function hav(a1,o1,a2,o2){const r=Math.PI/180,R=6371,
   return 2*R*Math.asin(Math.sqrt(h));}
 function fmtMin(m){if(m==null)return 'n/d';m=Math.round(m);
   return m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0');}
-function setPosition(lat,lon){
+let POSVILLE=null; /* nom de la ville si la position vient de la liste */
+function setPosition(lat,lon,ville){
   POS=[lat,lon];
+  POSVILLE=ville||null;
   DATA.forEach(d=>{
     if(d.lat==null){d._km=null;d._route=null;d._total=null;return;}
     d._km=hav(lat,lon,d.lat,d.lon);
@@ -1021,8 +1262,8 @@ function setPosition(lat,lon){
   chips();
   /* Si un r\\u00e9sultat du guide affichant les CLSC est ouvert, on le
      rafra\\u00eechit avec les distances maintenant connues. */
-  if((LASTG==='rclin'||LASTG==='rgap')&&
-     document.getElementById('gbody').style.display!=='none')ggo(LASTG);
+  if((LASTG==='rclin'||LASTG==='rgap')&&document.getElementById('gq'))ggo(LASTG);
+  majAccueil();
   /* D\\u00e8s que la position est connue, on montre le plus proche d'abord
      (sauf si l'utilisateur avait d\\u00e9j\\u00e0 choisi le temps total). */
   const sel=document.getElementById('sort');
@@ -1032,61 +1273,121 @@ function setPosition(lat,lon){
     n.textContent='Distances \\u00e0 vol d\\u2019oiseau et temps de route estim\\u00e9s \\u2014 '+
       'sur de longues distances, le trajet r\\u00e9el (fleuve, traversiers, d\\u00e9tours) '+
       'peut \\u00eatre beaucoup plus long. Votre position reste dans votre navigateur : '+
-      'elle n\\u2019est ni enregistr\\u00e9e ni transmise.';
+      'elle n\\u2019est jamais transmise. Si vous choisissez votre ville dans la '+
+      'liste, elle est retenue sur cet appareil seulement, pour la prochaine visite.';
     document.getElementById('notice').before(n);
   }
   render();
 }
-function fallbackVilles(){
+function villeMemo(){
+  try{return localStorage.getItem('bousville');}catch(e){return null;}
+}
+function fallbackVilles(pre){
   const b=document.getElementById('loc');
   if(!b||document.getElementById('ville'))return;
   const s=document.createElement('select');s.id='ville';
   s.innerHTML='<option value="">Votre ville\\u2026</option>'+
     VILLES.map((v,i)=>'<option value="'+i+'">'+v[0]+'</option>').join('');
   s.addEventListener('change',()=>{const v=VILLES[+s.value];
-    if(v)setPosition(v[1],v[2]);});
+    if(v){
+      /* On retient la ville sur l'appareil : au prochain lancement, la
+         position sera active toute seule. Rien ne quitte le t\\u00e9l\\u00e9phone. */
+      try{localStorage.setItem('bousville',v[0]);}catch(e){}
+      setPosition(v[1],v[2],v[0]);
+    }});
+  if(pre!=null)s.value=String(pre);
   b.replaceWith(s);
 }
+function reprendreVille(){
+  /* Ville retenue lors d'une visite pr\\u00e9c\\u00e9dente \\u2192 position
+     automatique d\\u00e8s l'ouverture. */
+  const vn=villeMemo();
+  if(!vn)return false;
+  const i=VILLES.findIndex(v=>v[0]===vn);
+  if(i<0)return false;
+  fallbackVilles(i);
+  setPosition(VILLES[i][1],VILLES[i][2],vn);
+  return true;
+}
+function ouvrirChoixVille(){
+  /* Fen\\u00eatre de choix de ville, visible depuis N'IMPORTE quel \\u00e9cran
+     (l'ancien s\\u00e9lecteur de la barre restait invisible depuis l'accueil). */
+  if(document.getElementById('voile'))return;
+  const v=document.createElement('div');v.className='voile';v.id='voile';
+  v.innerHTML='<div class="fiche"><button type="button" class="fx" '+
+    'id="fermer">\\u2715 Fermer</button>'+
+    '<p class="name" style="font-size:17px">O\\u00f9 \\u00eates-vous\\u00a0?</p>'+
+    '<p class="gnote">La localisation GPS n\\u2019est pas disponible ici (elle '+
+    'demande une adresse s\\u00e9curis\\u00e9e HTTPS). Choisissez votre '+
+    'ville\\u00a0: les distances partiront de son centre, et elle sera '+
+    'retenue sur cet appareil pour les prochaines visites. Rien n\\u2019est '+
+    'transmis.</p>'+
+    '<select id="villeov" style="width:100%;margin-top:10px">'+
+    '<option value="">Choisissez votre ville\\u2026</option>'+
+    VILLES.map((x,i)=>'<option value="'+i+'">'+x[0]+'</option>').join('')+
+    '</select></div>';
+  if(POSVILLE){
+    const i=VILLES.findIndex(x=>x[0]===POSVILLE);
+    if(i>=0)v.querySelector('#villeov').value=String(i);
+  }
+  v.addEventListener('click',e=>{
+    if(e.target===v||e.target.id==='fermer')v.remove();});
+  v.querySelector('#villeov').addEventListener('change',e=>{
+    const x=VILLES[+e.target.value];
+    if(!x)return;
+    try{localStorage.setItem('bousville',x[0]);}catch(err){}
+    if(!document.getElementById('ville'))fallbackVilles(+e.target.value);
+    else document.getElementById('ville').value=e.target.value;
+    setPosition(x[1],x[2],x[0]);
+    v.remove();
+  });
+  document.body.appendChild(v);
+}
 function locate(){
-  if(!navigator.geolocation){fallbackVilles();return;}
+  if(!navigator.geolocation){
+    if(!reprendreVille())ouvrirChoixVille();
+    return;
+  }
   const b=document.getElementById('loc');
   if(b)b.textContent='Localisation\\u2026';
   navigator.geolocation.getCurrentPosition(
     p=>setPosition(p.coords.latitude,p.coords.longitude),
-    ()=>fallbackVilles(),
+    ()=>{
+      if(b)b.textContent='\\uD83D\\uDCCD Autour de moi';
+      if(!reprendreVille())ouvrirChoixVille();
+    },
     {timeout:8000,maximumAge:600000});
 }
 /* Tendances : mini-graphique des 24 heures + phrase simple, calcul\\u00e9s
    \\u00e0 partir des moyennes horaires re\\u00e7ues du script Python. */
 function trendHtml(d){
   if(META.tjours<3||!d.trend)return '';
-  const t=d.trend,now=new Date().getHours();
-  const vals=t.filter(v=>v!=null);
+  const t=d.trend,vals=t.filter(v=>v!=null);
   if(vals.length<8)return '';
   const max=Math.max(...vals)||1;
+  const now=new Date().getHours();
   let bars='';
-  for(let h=0;h<24;h++){
-    const v=t[h],px=v==null?2:Math.round(2+22*v/max);
-    bars+='<i style="height:'+px+'px"'+(h===now?' class="now"':'')+
-      ' title="'+h+' h : '+(v==null?'n/d':v+' en attente en moyenne')+'"></i>';
+  for(let h=0;h<24;h+=2){
+    const a=t[h],b2=t[(h+1)%24];
+    const v=(a!=null&&b2!=null)?(a+b2)/2:(a!=null?a:b2);
+    const pc=v==null?4:Math.round(8+92*v/max);
+    const c=v==null?'var(--line)':
+      (v>max*0.8?'var(--deborde)':(v>max*0.55?'var(--charge)':'var(--fluide)'));
+    bars+='<div><div class="ab" style="height:'+pc+'%;background:'+c+
+      ((h===now||h+1===now)?';outline:2px solid var(--ink);outline-offset:1px':'')+
+      '" title="'+h+' h \u2013 '+((h+2)%24)+' h : '+
+      (v==null?'n/d':Math.round(v)+' en attente en moyenne')+'"></div>'+
+      '<div class="al">'+h+'h</div></div>';
   }
-  /* Phrase : on compare l'heure actuelle aux 6 prochaines heures. */
-  let phrase='';
-  const cur=t[now];
-  if(cur!=null&&cur>0){
-    let creux=null,pointe=null;
-    for(let k=1;k<=6;k++){const h=(now+k)%24;
-      if(t[h]==null)continue;
-      if(creux==null||t[h]<t[creux])creux=h;
-      if(pointe==null||t[h]>t[pointe])pointe=h;}
-    if(creux!=null&&t[creux]<=cur*0.8)
-      phrase='<b>L\\u2019attente baisse habituellement vers '+creux+' h.</b> ';
-    else if(pointe!=null&&t[pointe]>=cur*1.25)
-      phrase='<b>L\\u2019attente monte habituellement vers '+pointe+' h.</b> ';
-  }
-  return '<div class="tr">'+bars+'</div><p class="trcap">'+phrase+
-    'Attente typique heure par heure (moyenne sur '+META.tjours+
-    ' jours \\u00b7 barre color\\u00e9e = maintenant).</p>';
+  let creux=null,pointe=null;
+  t.forEach((v,h)=>{if(v!=null){
+    if(creux==null||v<t[creux])creux=h;
+    if(pointe==null||v>t[pointe])pointe=h;}});
+  return '<div class="fh">Affluence par heure \u2014 profil des '+META.tjours+
+    ' derniers jours</div><div class="aff">'+bars+'</div>'+
+    '<p class="trcap">Creux habituel vers <b>'+creux+' h</b>, pointe vers <b>'+
+    pointe+' h</b> \u00b7 barre encadr\u00e9e = maintenant \u00b7 survolez '+
+    'pour le d\u00e9tail.</p>';
 }
 /* Guide d'orientation : informatif seulement. Aucune question de sant\\u00e9,
    aucun calcul de gravit\\u00e9 \\u2014 la personne choisit la situation qui
@@ -1127,7 +1428,7 @@ const GRES={
   '\\u2022 <b>Cliniques</b> \\u2014 des places le jour m\\u00eame via '+
   'rvsq.gouv.qc.ca ou le 811 option 3.<br>'+
   '\\u2022 <b>Urgence</b> \\u2014 ouverte \\u00e0 tous, 24\\u00a0h/7\\u00a0: '+
-  'la liste ci-dessous montre l\\u2019attente en direct, et les cas '+
+  'la liste montre l\\u2019attente en direct, et les cas '+
   'prioritaires sont toujours vus en premier. '+
   '<button type="button" class="qbtn" data-go="voir">Voir les urgences '+
   'pr\\u00e8s de chez moi</button>'
@@ -1145,9 +1446,9 @@ function clscHtml(){
     .map(c=>({n:c.n,a:c.a,lat:c.lat,lon:c.lon,km:hav(POS[0],POS[1],c.lat,c.lon)}))
     .sort((a,b)=>a.km-b.km).slice(0,3);
   return '<p class="fh">CLSC les plus proches</p>'+prox.map(c=>
-    '<div class="fstat" style="margin-top:6px"><b style="font-size:14px">'+c.n+'</b>'+
+    '<div class="fstat" style="margin-top:6px"><b style="font-size:14px;font-family:inherit">'+c.n+'</b>'+
     '<span>'+c.a+' \\u00b7 \\u2248 '+Math.round(c.km)+' km</span>'+
-    '<a class="fbtn" style="margin-top:8px;font-size:12.5px;padding:6px 10px" '+
+    '<a class="fbtn" style="margin-top:8px;font-size:12.5px;padding:6px 12px" '+
     'target="_blank" rel="noopener" '+
     'href="https://www.google.com/maps/dir/?api=1&destination='+c.lat+','+c.lon+
     '">Itin\\u00e9raire</a></div>').join('')+
@@ -1158,6 +1459,7 @@ let LASTG=null;
 function ggo(id){
   LASTG=id;
   const el=document.getElementById('gq');
+  if(!el)return;
   if(GQ[id]){
     el.innerHTML='<p class="gq">'+GQ[id].q+'</p>'+
       GQ[id].o.map(o=>'<button type="button" class="qbtn" data-go="'+o[1]+'">'+
@@ -1171,6 +1473,34 @@ function ggo(id){
       '<button type="button" class="qbtn" data-go="q1">\\u21ba Recommencer</button>';
   }
 }
+function openGuide(){
+  if(document.getElementById('voile'))return;
+  const v=document.createElement('div');v.className='voile';v.id='voile';
+  v.innerHTML='<div class="fiche"><button type="button" class="fx" '+
+    'id="fermer">\\u2715 Fermer</button>'+
+    '<p class="name" style="font-size:18px;padding-right:90px">O\\u00f9 aller\\u00a0? '+
+    '\\u2014 guide des ressources (informatif)</p>'+
+    document.getElementById('guide-src').innerHTML+
+    '<div id="gq"></div></div>';
+  v.addEventListener('click',e=>{
+    const go=e.target.getAttribute&&e.target.getAttribute('data-go');
+    if(go){
+      if(go==='voir'){
+        v.remove();
+        goScreen(2);
+        document.getElementById('sort').value='distance';
+        if(!POS)locate();
+        render();
+        return;
+      }
+      ggo(go);
+      return;
+    }
+    if(e.target===v||e.target.id==='fermer')v.remove();
+  });
+  document.body.appendChild(v);
+  ggo('q1');
+}
 function badge(t){
   if(t==null)return '<span class="badge" style="background:var(--line);color:var(--mut)">n/d</span>';
   const cls=t<100?'b-ok':(t<130?'b-warn':'b-bad');
@@ -1178,6 +1508,10 @@ function badge(t){
 }
 /* Fiche d\\u00e9taill\\u00e9e d'un h\\u00f4pital : tout ce qu'il faut pour
    d\\u00e9cider, en mots simples. S'ouvre au clic sur une carte. */
+function fmt(v,suf){return v==null?'n/d':Math.round(v*10)/10+(suf||'');}
+const nrm=s=>(s||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase()
+  .replace(/\\bsainte\\b/g,'ste').replace(/\\bsaint\\b/g,'st')
+  .replace(/\\bhopital\\b/g,'hop').replace(/[^a-z0-9]+/g,' ').trim();
 function fstat(val,lab){
   return val==null?'':'<div class="fstat"><b>'+val+'</b><span>'+lab+'</span></div>';
 }
@@ -1261,61 +1595,71 @@ function histoHtml(d){
     'barre fonc\\u00e9e = le plus r\\u00e9cent \\u00b7 survolez pour le d\\u00e9tail).</p>';
 }
 function openFiche(d){
-  const rel=META.releve?META.releve.replace('T',' \\u00e0 '):'';
-  let h='<div class="fiche"><button type="button" class="fx" id="fermer">\\u2715 Fermer</button>'+
-    '<p class="name" style="font-size:18px;padding-right:90px">'+d.installation+'</p>'+
-    '<p class="etab">'+d.etablissement+' \\u00b7 '+d.region+'</p>'+
-    (d.adresse?'<p class="etab">'+d.adresse+'</p>':'');
-  h+='<p class="fh">En ce moment'+(rel?' (relev\\u00e9 de '+rel+')':'')+'</p><div class="fgrille">'+
-    fstat(fmt(d.attente_pec),'personnes en attente d\\u2019un m\\u00e9decin')+
-    fstat(fmt(d.presents),'personnes sur place \\u00e0 l\\u2019urgence')+
-    fstat(d.taux!=null?d.taux+' %':null,'civi\\u00e8res occup\\u00e9es ('+fmt(d.civ_occ)+' sur '+fmt(d.civ_fonct)+')')+
-    fstat(d.civ_24h||null,'personnes sur civi\\u00e8re depuis plus de 24 h')+
+  FICHE_SEL=d;
+  const rel=META.releve?META.releve.replace('T',' \u00e0 '):'';
+  const b=estBornes(d);
+  let g='<div class="c20" style="padding:30px">'+
+    '<button type="button" class="retour" data-back="1">\u2190 Retour aux '+
+    'r\u00e9sultats</button>'+
+    '<div style="margin-top:14px;font-size:27px;font-weight:600;'+
+    'letter-spacing:-0.025em;line-height:1.12">'+
+    (FAV.has(d.installation)?'<span class="fav">\u2605</span> ':'')+
+    d.installation+'</div>'+
+    '<div style="margin-top:8px;font-size:14.5px;color:var(--mut)">'+
+    [(vocation(d)?'Urgence sp\u00e9cialis\u00e9e \u2014 '+vocation(d):null),
+     d.etablissement,d.adresse,
+     (POS&&d._km!=null?Math.round(d._km)+' km \u00b7 ~'+fmtMin(d._route)+
+      ' de route':null)].filter(Boolean).join(' \u00b7 ')+'</div>'+
+    '<div class="fgrille" style="margin-top:24px">'+
+    (b?'<div class="fstat acc"><b>'+fmtMin(b.lo)+'\u2013'+fmtMin(b.hi)+'</b>'+
+      '<span>temps sur place estim\u00e9 (cas non prioritaire)</span></div>':'')+
+    fstat(fmt(d.attente_pec),'personnes en attente d\u2019un m\u00e9decin')+
+    fstat(d.taux!=null?d.taux+' %':null,'civi\u00e8res occup\u00e9es ('+
+      fmt(d.civ_occ)+' sur '+fmt(d.civ_fonct)+')')+
+    fstat(fmt(d.presents),'personnes sur place')+
+    fstat(d.civ_24h||null,'sur civi\u00e8re depuis plus de 24 h')+
+    '</div>'+
+    estimationHtml(d)+
+    '<div class="fh">Ce qui vous attend</div>'+
+    '<div class="timel"><span>0\u201315 min</span><span>Inscription et '+
+    'triage infirmier</span></div>'+
+    '<div class="timel"><span>ensuite</span><span>Salle d\u2019attente \u2014 '+
+    'priorit\u00e9 selon la gravit\u00e9, pas l\u2019ordre '+
+    'd\u2019arriv\u00e9e</span></div>'+
+    '<div class="timel"><span>'+(b?fmtMin(b.lo)+'\u2013'+fmtMin(b.hi):'variable')+
+    '</span><span>Sortie estim\u00e9e pour un cas ambulatoire (s\u00e9jour '+
+    'd\u2019hier, ajust\u00e9 \u00e0 l\u2019achalandage du moment)</span></div>'+
     '</div>';
-  h+=estimationHtml(d);
-  h+=histoHtml(d);
-  h+='<p class="fh">Attente typique</p><div class="fgrille">'+
-    fstat(fmt(d.dms_ambulatoire,' h'),'s\\u00e9jour moyen si vous restez en salle d\\u2019attente (hier)')+
-    fstat(fmt(d.dms_civiere,' h'),'s\\u00e9jour moyen sur civi\\u00e8re (hier)')+
-    '</div>'+trendHtml(d);
-  if(POS&&d._km!=null){
-    h+='<p class="fh">Depuis votre position</p><div class="fgrille">'+
-      fstat('\\u2248 '+Math.round(d._km)+' km','\\u00e0 vol d\\u2019oiseau')+
-      fstat('~'+fmtMin(d._route),'de route (estimation)')+
-      (d._total!=null?fstat(fmtMin(d._total),'temps total estim\\u00e9 (trajet + s\\u00e9jour moyen)'):'')+
-      '</div>';
+  const blocsHisto=histoHtml(d)+trendHtml(d);
+  if(blocsHisto||META.tjours<3){
+    g+='<div class="c20" style="margin-top:16px;padding:26px">'+blocsHisto+
+      (META.tjours<3?'<p class="trcap">Le profil d\u2019affluence par heure '+
+        'appara\u00eetra apr\u00e8s 3 jours de collecte (accumul\u00e9\u00a0: '+
+        META.tjours+' jour'+(META.tjours>1?'s':'')+').</p>':'')+'</div>';
   }
-  if(d.lat!=null){
-    h+='<a class="fbtn" target="_blank" rel="noopener" '+
+  const a='<div class="c20" style="padding:24px">'+
+    (d.lat!=null?'<a class="pill pill-b" style="display:block;text-align:center;'+
+      'text-decoration:none" target="_blank" rel="noopener" '+
       'href="https://www.google.com/maps/dir/?api=1&destination='+d.lat+','+d.lon+
-      '">\\u{1F5FA} Itin\\u00e9raire</a>';
-  }
-  h+='<button type="button" class="fbtn" data-fav="'+
-    d.installation.replace(/"/g,'&quot;')+'">'+
-    (FAV.has(d.installation)?'\\u2605 Retirer des favoris':'\\u2606 Ajouter aux favoris')+
-    '</button>';
-  h+='<p class="gnote">Ces chiffres changent chaque heure et ne pr\\u00e9disent pas '+
-    'votre attente personnelle : les cas prioritaires sont toujours vus en premier, '+
-    'peu importe l\\u2019\\u00e9tablissement. En cas d\\u2019urgence vitale, composez '+
-    'le 911. En cas de doute sur votre \\u00e9tat, appelez le 811 (24 h/7).</p></div>';
-  const v=document.createElement('div');v.className='voile';v.id='voile';
-  v.innerHTML=h;
-  v.addEventListener('click',e=>{
-    const nom=e.target.getAttribute&&e.target.getAttribute('data-fav');
-    if(nom!=null){
-      toggleFav(nom);
-      e.target.textContent=FAV.has(nom)
-        ?'\\u2605 Retirer des favoris':'\\u2606 Ajouter aux favoris';
-      render();
-      return;
-    }
-    if(e.target===v||e.target.id==='fermer')v.remove();});
-  document.body.appendChild(v);
+      '">Ouvrir l\u2019itin\u00e9raire</a>':'')+
+    '<button type="button" class="pill pill-o" style="display:block;width:100%;'+
+    'margin-top:10px" data-fav="'+d.installation.replace(/"/g,'&quot;')+'">'+
+    (FAV.has(d.installation)?'\u2605 Retirer des favoris':'\u2606 Ajouter aux favoris')+
+    '</button></div>'+
+    '<div class="c20" style="padding:22px;margin-top:12px">'+
+    '<div class="kick">\u00c0 apporter</div>'+
+    '<p style="margin-top:10px;font-size:14px;line-height:1.55">Carte '+
+    'd\u2019assurance maladie \u00b7 liste de vos m\u00e9dicaments \u00b7 '+
+    'carte d\u2019h\u00f4pital si vous en avez une.</p>'+
+    '<div class="hr"></div>'+
+    '<p class="mono" style="font-size:11px;color:var(--mut);line-height:1.6">'+
+    'Donn\u00e9es MSSS'+(rel?' \u00b7 relev\u00e9 de '+rel:'')+
+    '. Estimations indicatives, non m\u00e9dicales. Les cas prioritaires '+
+    'passent toujours en premier. Urgence vitale\u00a0: 911.</p></div>';
+  document.getElementById('ecran3').innerHTML=
+    '<div class="duo3"><div>'+g+'</div><div>'+a+'</div></div>';
+  goScreen(3);
 }
-function fmt(v,suf){return v==null?'n/d':Math.round(v*10)/10+(suf||'');}
-const nrm=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
-  .replace(/\bsainte\b/g,'ste').replace(/\bsaint\b/g,'st')
-  .replace(/\bhopital\b/g,'hop').replace(/[^a-z0-9]+/g,' ').trim();
 /* Comparateur : jusqu'\\u00e0 3 h\\u00f4pitaux c\\u00f4te \\u00e0 c\\u00f4te.
    S\\u00e9lection en m\\u00e9moire seulement \\u2014 rien d'enregistr\\u00e9. */
 let COMP=new Set();
@@ -1417,8 +1761,8 @@ function renderCarte(rows){
   vis.forEach(d=>{
     const i=indice(d);
     s+='<circle data-i="'+d._i+'" cx="'+X(d.lon)+'" cy="'+Y(d.lat)+
-      '" r="7" fill="'+(i!=null?coulJauge(i):'#9aa39b')+
-      '" style="stroke:var(--card);cursor:pointer" stroke-width="1.6" '+
+      '" r="7" style="fill:'+(i!=null?coulJauge(i):'var(--mut)')+
+      ';stroke:var(--card);cursor:pointer" stroke-width="1.6" '+
       'opacity="0.93"><title>'+d.installation+
       (d.attente_pec!=null?' \\u2014 '+fmt(d.attente_pec)+' en attente':'')+
       (d.taux!=null?' \\u00b7 civi\\u00e8res '+d.taux+' %':'')+
@@ -1474,32 +1818,44 @@ function render(){
     html+='<p class="rg">'+r+'</p>';
     byReg[r].forEach(d=>{
       const bo=estBornes(d);
-      const morceaux=[];
-      if(bo)morceaux.push('\\u2248 '+fmtMin(bo.lo)+' \\u00e0 '+fmtMin(bo.hi)+' sur place');
-      if(d.attente_pec!=null)morceaux.push(fmt(d.attente_pec)+' en attente');
-      if(!morceaux.length&&d.taux!=null)
-        morceaux.push('civi\\u00e8res occup\\u00e9es \\u00e0 '+d.taux+' %');
-      if(POS&&d._km!=null&&sort==='total'&&d._total!=null)
-        morceaux.push('temps total \\u2248 '+fmtMin(d._total));
       const ind=indice(d);
-      const droite=(POS&&d._km!=null)
-        ?'<span class="dist">'+Math.round(d._km)+' km</span>'
-        :badge(d.taux);
+      const coul=ind!=null?coulJauge(ind):'var(--mut)';
+      const et=etatDe(ind);
+      const voc=vocation(d);
+      const type='Urgence'+(voc?' '+voc:'')+((POS&&d._km!=null)
+        ?' \u00b7 '+Math.round(d._km)+' km':' \u00b7 '+d.region);
+      const droite=bo
+        ?'<div style="flex-shrink:0"><div class="attq" style="color:'+coul+'">'+
+          fmtMin(bo.lo)+'\u2013'+fmtMin(bo.hi)+'</div>'+
+          '<div class="attqs">sur place (est.)'+
+          (d.attente_pec!=null?' \u00b7 '+fmt(d.attente_pec)+' en file':'')+'</div></div>'
+        :'<div style="flex-shrink:0">'+badge(d.taux)+
+          (d.attente_pec!=null?'<div class="attqs">'+fmt(d.attente_pec)+' en file</div>':'')+'</div>';
+      const infos=[et||null,(d.taux!=null?d.taux+' % d\u2019occupation':null)];
+      if(POS&&d._total!=null&&sort==='total')
+        infos.push('temps total \u2248 '+fmtMin(d._total));
       html+='<div class="card" data-i="'+d._i+'">'+
-        '<div class="row"><p class="name">'+
-        (FAV.has(d.installation)?'<span class="fav">\\u2605</span> ':'')+
-        d.installation+'</p>'+droite+'</div>'+
-        '<p class="ligne">'+(morceaux.join(' \\u00b7 ')||'donn\\u00e9es partielles')+'</p>'+
+        '<div class="row"><div style="text-align:left"><div class="ktype">'+type+'</div>'+
+        '<div class="name">'+
+        (FAV.has(d.installation)?'<span class="fav">\u2605</span> ':'')+
+        d.installation+'</div></div>'+droite+'</div>'+
         (ind!=null?'<div class="jauge"><i style="width:'+
-          Math.min(100,Math.round(ind/1.5))+'%;background:'+coulJauge(ind)+'"></i></div>':'')+
-        '<p class="ligne"><span class="det">D\\u00e9tails \\u203a</span> \\u00b7 '+
+          Math.min(100,Math.round(ind/1.5))+'%;background:'+coul+'"></i></div>':'')+
+        '<div class="basrow"><span>'+infos.filter(Boolean).join(' \u00b7 ')+'</span>'+
+        '<span><span class="det">D\u00e9tails \u2192</span> \u00b7 '+
         '<span class="cmp'+(COMP.has(d.installation)?' on':'')+'" data-comp="'+
         d.installation.replace(/"/g,'&quot;')+'">'+
-        (COMP.has(d.installation)?'\\u2713 \\u00c0 comparer':'+ Comparer')+
-        '</span></p></div>';
+        (COMP.has(d.installation)?'\u2713 \u00c0 comparer':'+ Comparer')+
+        '</span></span></div></div>';
     });
   });
-  document.getElementById('list').innerHTML=html||'<p class="sub">Aucun r\\u00e9sultat.</p>';
+  document.getElementById('list').innerHTML=html||'<p class="gnote">Aucun r\\u00e9sultat.</p>';
+  const libelles={distance:'distance',total:'temps total (trajet + attente)',
+    taux:'occupation des civi\\u00e8res',attente_pec:'personnes en attente',
+    dms_ambulatoire:'s\\u00e9jour moyen',nom:'nom'};
+  const nr=document.getElementById('nres');
+  if(nr)nr.innerHTML=rows.length+' lieu'+(rows.length>1?'x':'')+
+    ' \\u00b7 tri\\u00e9s par <b>'+(libelles[sort]||sort)+'</b>';
   const enCarte=(VUE==='carte');
   document.getElementById('list').style.display=enCarte?'none':'';
   document.getElementById('carte').style.display=enCarte?'':'none';
@@ -1510,24 +1866,49 @@ Promise.resolve(__PAYLOAD__).then(j=>{
   DATA.forEach((d,i)=>{d._i=i;});
   chips();
   setInterval(chips,60000);
-  document.getElementById('t-liste-sub').textContent=
-    'Les '+j.data.length+' urgences du Qu\\u00e9bec, mises \\u00e0 jour chaque heure';
-  document.getElementById('titre').addEventListener('click',goAccueil);
+  document.getElementById('titre').addEventListener('click',()=>goScreen(1));
+  document.getElementById('ong1').addEventListener('click',()=>goScreen(1));
+  document.getElementById('ong2').addEventListener('click',()=>goScreen(2));
+  document.getElementById('ong3').addEventListener('click',()=>{
+    if(!FICHE_SEL)FICHE_SEL=meilleurGeneral()||DATA[0];
+    if(FICHE_SEL)openFiche(FICHE_SEL);
+  });
   document.getElementById('t-soins').addEventListener('click',()=>{
-    goAppli();
-    document.getElementById('sort').value='total';
+    goScreen(2);
+    document.getElementById('sort').value='distance';
     if(!POS)locate();else render();
   });
-  document.getElementById('t-guide').addEventListener('click',()=>{
-    goAppli();
-    document.getElementById('gbody').style.display='';
-    ggo('q1');
-    window.scrollTo(0,0);
+  document.getElementById('t-guide').addEventListener('click',openGuide);
+  document.getElementById('sort').value='taux';
+  document.getElementById('reseau').addEventListener('click',e=>{
+    const r=e.target.getAttribute&&e.target.getAttribute('data-region');
+    if(!r)return;
+    goScreen(2);
+    document.getElementById('reg').value=r;
+    render();
   });
-  document.getElementById('t-liste').addEventListener('click',()=>{
-    goAppli();render();
+  document.getElementById('recomm').addEventListener('click',e=>{
+    const g=a=>e.target.getAttribute&&e.target.getAttribute(a);
+    if(g('data-loc')){locate();return;}
+    const fi=g('data-fiche');
+    if(fi!=null){openFiche(DATA[+fi]);return;}
+    if(g('data-go2')){
+      goScreen(2);
+      document.getElementById('sort').value='total';
+      render();
+    }
   });
-  document.getElementById('resume').innerHTML=resumeHtml();
+  document.getElementById('ecran3').addEventListener('click',e=>{
+    const g=a=>e.target.getAttribute&&e.target.getAttribute(a);
+    if(g('data-back')){goScreen(2);return;}
+    const nom=g('data-fav');
+    if(nom!=null){
+      toggleFav(nom);
+      e.target.textContent=FAV.has(nom)
+        ?'\u2605 Retirer des favoris':'\u2606 Ajouter aux favoris';
+      render();
+    }
+  });
   document.getElementById('lien-methodo').addEventListener('click',e=>{
     e.preventDefault();
     const v=document.createElement('div');v.className='voile';v.id='voile';
@@ -1538,35 +1919,18 @@ Promise.resolve(__PAYLOAD__).then(j=>{
       if(ev.target===v||ev.target.id==='fermer')v.remove();});
     document.body.appendChild(v);
   });
-  document.getElementById('resume').addEventListener('click',e=>{
-    const r=e.target.getAttribute&&e.target.getAttribute('data-region');
-    if(!r)return;
-    goAppli();
-    document.getElementById('reg').value=r;
-    render();
-  });
   if(j.error)document.getElementById('notice').innerHTML=
     '<div class="notice">'+j.error+'</div>';
-  if(j.source==='msss'&&j.tjours<3){
-    const n=document.createElement('p');n.className='sub';
-    n.textContent='Tendances heure par heure : elles appara\\u00eetront apr\\u00e8s '+
-      '3 jours de collecte (accumul\\u00e9 : '+j.tjours+' jour'+(j.tjours>1?'s':'')+').';
-    document.getElementById('notice').before(n);
-  }
   const regs=[...new Set(j.data.map(d=>d.region))].sort((a,b)=>a.localeCompare(b,'fr'));
   const sel=document.getElementById('reg');
   regs.forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r;sel.appendChild(o);});
   ['q','reg','sort'].forEach(id=>document.getElementById(id)
     .addEventListener('input',render));
-  document.getElementById('loc').addEventListener('click',locate);
+  const locBtn=document.getElementById('loc');
+  if(locBtn)locBtn.addEventListener('click',locate);
   document.getElementById('sort').addEventListener('change',e=>{
     if((e.target.value==='total'||e.target.value==='distance')&&!POS)locate();});
-  document.getElementById('gtoggle').addEventListener('click',()=>{
-    const b=document.getElementById('gbody');
-    const ouvert=b.style.display!=='none';
-    b.style.display=ouvert?'none':'';
-    if(!ouvert)ggo('q1');  /* toujours repartir du d\\u00e9but : rien n'est retenu */
-  });
+  document.getElementById('gtoggle').addEventListener('click',openGuide);
   document.getElementById('list').addEventListener('click',e=>{
     const nom=e.target.getAttribute&&e.target.getAttribute('data-comp');
     if(nom!=null){toggleComp(nom);return;}
@@ -1591,18 +1955,8 @@ Promise.resolve(__PAYLOAD__).then(j=>{
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){const v=document.getElementById('voile');if(v)v.remove();}
   });
-  document.getElementById('gbody').addEventListener('click',e=>{
-    const go=e.target.getAttribute&&e.target.getAttribute('data-go');
-    if(!go)return;
-    if(go==='voir'){
-      document.getElementById('sort').value='total';
-      if(!POS)locate();
-      render();
-      document.getElementById('list').scrollIntoView({behavior:'smooth'});
-      return;
-    }
-    ggo(go);
-  });
+  reprendreVille();
+  majAccueil();
   render();
 });
 </script>
@@ -1631,10 +1985,30 @@ def make_payload():
     return c, payload
 
 
+LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "logo_rosace.png")
+_logo_uri = None
+
+
+def logo_uri():
+    """Le logo (rosace 128 px) en data-URI, pour des pages autonomes."""
+    global _logo_uri
+    if _logo_uri is None:
+        try:
+            import base64
+            with open(LOGO_PATH, "rb") as f:
+                _logo_uri = ("data:image/png;base64,"
+                             + base64.b64encode(f.read()).decode("ascii"))
+        except Exception:
+            _logo_uri = ""  # pas de logo : l'image sera simplement vide
+    return _logo_uri
+
+
 def build_page():
     """Page autonome (double-clic) : données incluses, pas de service worker."""
     _, payload = make_payload()
-    return PAGE.replace("__PAYLOAD__", payload).replace("__PWA__", "")
+    return (PAGE.replace("__PAYLOAD__", payload).replace("__PWA__", "")
+            .replace("__LOGO__", logo_uri()))
 
 
 # ---------------------------------------------------------------------------
@@ -1678,7 +2052,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v9';
+const CACHE='boussole-v15';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
@@ -1748,7 +2122,8 @@ def build_site():
         sys.exit(1)
     site = os.path.join(os.path.dirname(os.path.abspath(__file__)), "site")
     os.makedirs(site, exist_ok=True)
-    shell = PAGE.replace("__PAYLOAD__", PAYLOAD_FETCH).replace("__PWA__", PWA_HEAD)
+    shell = (PAGE.replace("__PAYLOAD__", PAYLOAD_FETCH)
+             .replace("__PWA__", PWA_HEAD).replace("__LOGO__", logo_uri()))
     ecrits = []
     for nom, contenu in [("index.html", shell), ("donnees.json", payload),
                          ("manifest.webmanifest", MANIFEST), ("sw.js", SW_JS)]:
@@ -1777,9 +2152,26 @@ if __name__ == "__main__":
         if SERVE_MODE:
             Handler = functools.partial(
                 http.server.SimpleHTTPRequestHandler, directory=site)
-            with http.server.ThreadingHTTPServer(("127.0.0.1", 8765), Handler) as srv:
+            adresse = "0.0.0.0" if LAN_MODE else "127.0.0.1"
+            with http.server.ThreadingHTTPServer((adresse, 8765), Handler) as srv:
                 print()
                 print("PWA locale : http://localhost:8765")
+                if LAN_MODE:
+                    # L'adresse du Mac sur le réseau local, pour le téléphone.
+                    import socket
+                    try:
+                        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        s.connect(("8.8.8.8", 80))  # aucun paquet envoyé
+                        ip = s.getsockname()[0]
+                        s.close()
+                        print("Sur votre téléphone (même Wi-Fi) : "
+                              "http://{}:8765".format(ip))
+                    except Exception:
+                        print("Téléphone : http://<adresse-IP-du-Mac>:8765 "
+                              "(voir Réglages > Wi-Fi sur le Mac)")
+                    print("Note : par le Wi-Fi, la géolocalisation automatique "
+                          "est bloquée par le navigateur — choisissez votre "
+                          "ville dans la liste.")
                 print("(Ctrl+C pour arrêter le serveur)")
                 webbrowser.open("http://localhost:8765")
                 try:

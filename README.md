@@ -26,12 +26,12 @@ python3 boussole.py --demo
 
 ## Ce que fait le prototype
 
-L'application s'ouvre sur un accueil « Que cherchez-vous ? » : besoin de
-soins maintenant, guide d'orientation, ou état des urgences en direct. La
-liste montre des cartes simples (temps sur place estimé, personnes en
-attente, jauge d'achalandage) ; le détail complet vit dans la fiche de
-chaque hôpital. On peut épingler ses hôpitaux en favoris (conservés
-uniquement sur l'appareil).
+L'application suit un parcours en trois écrans : « 1 · Orienter » (911 /
+811-guide / besoin de voir quelqu'un, hôpital recommandé près de vous,
+état du réseau), « 2 · Choisir » (liste, carte, comparateur, filtres) et
+« 3 · Y aller » (fiche complète : estimation, quand partir, affluence,
+itinéraire, quoi apporter). On peut épingler ses hôpitaux en favoris
+(conservés uniquement sur l'appareil).
 
 - Télécharge et fusionne les deux fichiers officiels du MSSS :
   - Releve_horaire_urgences_7jours.csv (civières fonctionnelles/occupées, 24 h+, 48 h+)
@@ -119,6 +119,17 @@ Génère le site complet dans `site/` et le sert sur http://localhost:8765 :
 la Boussole devient une application installable (icône, plein écran, mode
 hors ligne avec les dernières données vues). `python3 boussole.py --site`
 génère le dossier sans le servir (c'est ce que fait l'hébergeur).
+
+Pour l'essayer sur un téléphone connecté au même Wi-Fi :
+
+```
+python3 boussole.py --servir --reseau
+```
+
+puis taper sur le téléphone l'adresse affichée (http://IP-du-Mac:8765).
+La géolocalisation automatique est bloquée par le navigateur sur ce genre
+d'adresse — choisir sa ville dans la liste. macOS peut demander une fois
+d'autoriser Python à recevoir des connexions : accepter.
 
 ### Hébergement (GitHub Pages — gratuit)
 
