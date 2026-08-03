@@ -1113,7 +1113,7 @@ function chips(){
   const cp=document.getElementById('chip-pos');
   if(cp)cp.addEventListener('click',()=>{
     if(!POS)locate();
-    else ouvrirChoixVille();  /* changer de ville, depuis n'importe o\\u00f9 */
+    else ouvrirChoixVille('choix');  /* GPS ou changement de ville */
   });
 }
 /* R\\u00e9sum\\u00e9 provincial : le pouls du Qu\\u00e9bec, calcul\\u00e9
@@ -1362,21 +1362,37 @@ function reprendreVille(){
   setPosition(VILLES[i][1],VILLES[i][2],vn);
   return true;
 }
-function ouvrirChoixVille(){
-  /* Fen\\u00eatre de choix de ville, visible depuis N'IMPORTE quel \\u00e9cran
-     (l'ancien s\\u00e9lecteur de la barre restait invisible depuis l'accueil). */
+function gpsDirect(){
+  if(!navigator.geolocation){ouvrirChoixVille('echec');return;}
+  navigator.geolocation.getCurrentPosition(
+    p=>setPosition(p.coords.latitude,p.coords.longitude),
+    ()=>ouvrirChoixVille('echec'),
+    {timeout:8000,maximumAge:600000});
+}
+function ouvrirChoixVille(motif){
+  /* Fen\\u00eatre de position : GPS exact OU choix de ville, visible depuis
+     n'importe quel \\u00e9cran. motif='echec' quand le GPS vient d'\\u00e9chouer. */
   if(document.getElementById('voile'))return;
   const v=document.createElement('div');v.className='voile';v.id='voile';
+  const intro=(motif==='echec')
+    ?'La localisation exacte n\\u2019a pas pu \\u00eatre obtenue \\u2014 '+
+     'refus\\u00e9e, bloqu\\u00e9e, ou indisponible (sur une page ouverte en '+
+     'local, le navigateur l\\u2019interdit\\u00a0; sur le site en ligne, elle '+
+     'fonctionne). Choisissez votre ville\\u00a0: les distances partiront de '+
+     'son centre, et elle sera retenue sur cet appareil. Rien n\\u2019est transmis.'
+    :'Utilisez votre position exacte (le navigateur demandera votre '+
+     'permission), ou choisissez votre ville\\u00a0: elle sera retenue sur '+
+     'cet appareil. Dans les deux cas, rien ne quitte votre appareil.';
   v.innerHTML='<div class="fiche"><button type="button" class="fx" '+
     'id="fermer">\\u2715 Fermer</button>'+
-    '<p class="name" style="font-size:17px">O\\u00f9 \\u00eates-vous\\u00a0?</p>'+
-    '<p class="gnote">La localisation GPS n\\u2019est pas disponible ici (elle '+
-    'demande une adresse s\\u00e9curis\\u00e9e HTTPS). Choisissez votre '+
-    'ville\\u00a0: les distances partiront de son centre, et elle sera '+
-    'retenue sur cet appareil pour les prochaines visites. Rien n\\u2019est '+
-    'transmis.</p>'+
+    '<p class="name" style="font-size:17px">Votre position</p>'+
+    '<p class="gnote">'+intro+'</p>'+
+    '<button type="button" class="pill pill-b" id="gpsov" '+
+    'style="display:block;width:100%;margin-top:12px">'+
+    (motif==='echec'?'R\\u00e9essayer la localisation exacte'
+      :'\\uD83D\\uDCCD Utiliser ma position exacte')+'</button>'+
     '<select id="villeov" style="width:100%;margin-top:10px">'+
-    '<option value="">Choisissez votre ville\\u2026</option>'+
+    '<option value="">\\u2026 ou choisissez votre ville</option>'+
     VILLES.map((x,i)=>'<option value="'+i+'">'+x[0]+'</option>').join('')+
     '</select></div>';
   if(POSVILLE){
@@ -1384,6 +1400,7 @@ function ouvrirChoixVille(){
     if(i>=0)v.querySelector('#villeov').value=String(i);
   }
   v.addEventListener('click',e=>{
+    if(e.target.id==='gpsov'){v.remove();gpsDirect();return;}
     if(e.target===v||e.target.id==='fermer')v.remove();});
   v.querySelector('#villeov').addEventListener('change',e=>{
     const x=VILLES[+e.target.value];
@@ -1398,7 +1415,7 @@ function ouvrirChoixVille(){
 }
 function locate(){
   if(!navigator.geolocation){
-    if(!reprendreVille())ouvrirChoixVille();
+    if(!reprendreVille())ouvrirChoixVille('echec');
     return;
   }
   const b=document.getElementById('loc');
@@ -1407,7 +1424,7 @@ function locate(){
     p=>setPosition(p.coords.latitude,p.coords.longitude),
     ()=>{
       if(b)b.textContent='\\uD83D\\uDCCD Autour de moi';
-      if(!reprendreVille())ouvrirChoixVille();
+      if(!reprendreVille())ouvrirChoixVille('echec');
     },
     {timeout:8000,maximumAge:600000});
 }
@@ -2020,6 +2037,18 @@ Promise.resolve(__PAYLOAD__).then(j=>{
   });
   reprendreVille();
   majAccueil();
+  /* Permission GPS d\\u00e9j\\u00e0 accord\\u00e9e lors d'une visite
+     pass\\u00e9e ? On l'utilise sans rien demander : la position exacte
+     remplace la ville m\\u00e9moris\\u00e9e, silencieusement. */
+  if(navigator.permissions&&navigator.geolocation){
+    navigator.permissions.query({name:'geolocation'}).then(st=>{
+      if(st.state==='granted'){
+        navigator.geolocation.getCurrentPosition(
+          p=>setPosition(p.coords.latitude,p.coords.longitude),
+          ()=>{},{timeout:8000,maximumAge:600000});
+      }
+    }).catch(()=>{});
+  }
   render();
 });
 </script>
@@ -2127,7 +2156,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v17';
+const CACHE='boussole-v18';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
