@@ -1016,6 +1016,14 @@ attente d'un lit). La Boussole met de l'avant l'estimation pour un cas
 <b>ambulatoire</b> — la salle d'attente, situation de la plupart des gens —
 et affiche le chiffre «&nbsp;civière&nbsp;» dans la fiche de chaque hôpital.
 Les heures de publication peuvent aussi différer légèrement.</p>
+<p><b>Et le «&nbsp;temps d'attente avant de voir un médecin&nbsp;» de
+Québec.ca&nbsp;?</b> Cette mesure est calculée sur la file d'attente en
+direct par la console interne du réseau&nbsp;; elle n'est <b>pas publiée</b>
+dans les données ouvertes, et la Boussole ne peut donc pas l'afficher. Nos
+fourchettes estiment autre chose&nbsp;: le séjour <b>total</b> (arrivée →
+sortie) d'un cas ambulatoire, à partir de la moyenne de la veille ajustée à
+l'achalandage. Lors d'un débordement exceptionnel, l'attente réelle peut
+dépasser nettement cette fourchette — la fiche l'indique alors.</p>
 
 <p class="fh">Comment la Boussole calcule</p>
 <p><b>La jauge d'achalandage</b>&nbsp;: moyenne de deux pressions — l'occupation
@@ -1644,11 +1652,17 @@ function estimationHtml(d){
   const typ=b?b.typ:null,ratio=b?b.ratio:null;
   let h='';
   if(b){
+    const ind=indice(d);
     h+='<div class="binfo">Si vous y allez maintenant\\u00a0\\u2014 cas non prioritaire<br>'+
       '<b style="font-size:17px">entre '+fmtMin(b.lo)+' et '+fmtMin(b.hi)+' sur place</b>'+
+      '<br>Temps total estim\\u00e9, de l\\u2019arriv\\u00e9e \\u00e0 la sortie '+
+      '\\u2014 pas seulement l\\u2019attente avant le m\\u00e9decin.'+
       (ratio!=null?'<br>'+(ratio<0.8?'Plus calme':(ratio>1.25?'Plus occup\\u00e9':'Achalandage normal'))+
         ' que d\\u2019habitude \\u00e0 cette heure-ci ('+fmt(d.attente_pec)+
         ' en attente, moyenne\\u00a0: '+typ+')':'')+
+      ((ind!=null&&ind>=125)||(d.taux!=null&&d.taux>=125)?'<br><b>\\u26a0 D\\u00e9bordement en ce moment\\u00a0:</b> '+
+        'l\\u2019attente r\\u00e9elle peut d\\u00e9passer nettement cette '+
+        'fourchette, fond\\u00e9e sur la moyenne d\\u2019hier.':'')+
       '</div>';
   }
   /* Le meilleur moment pour partir, d'apr\\u00e8s les derniers jours. */
