@@ -1009,6 +1009,13 @@ charge. <b>Civières occupées / fonctionnelles</b>&nbsp;: un taux au-dessus de
 100&nbsp;% signifie plus de patients sur civière que de places prévues.
 <b>Séjour moyen</b>&nbsp;: durée moyenne de séjour observée la veille — pour
 les patients ambulatoires (salle d'attente) ou sur civière.</p>
+<p><b>Pourquoi nos chiffres diffèrent de Québec.ca&nbsp;?</b> Même source,
+mesures différentes&nbsp;: le site gouvernemental met de l'avant la durée
+moyenne de séjour <b>sur civière</b> (les cas les plus lourds, souvent en
+attente d'un lit). La Boussole met de l'avant l'estimation pour un cas
+<b>ambulatoire</b> — la salle d'attente, situation de la plupart des gens —
+et affiche le chiffre «&nbsp;civière&nbsp;» dans la fiche de chaque hôpital.
+Les heures de publication peuvent aussi différer légèrement.</p>
 
 <p class="fh">Comment la Boussole calcule</p>
 <p><b>La jauge d'achalandage</b>&nbsp;: moyenne de deux pressions — l'occupation
@@ -1730,6 +1737,9 @@ function openFiche(d){
       fmt(d.civ_occ)+' sur '+fmt(d.civ_fonct)+')')+
     fstat(fmt(d.presents),'personnes sur place')+
     fstat(d.civ_24h||null,'sur civi\u00e8re depuis plus de 24 h')+
+    fstat(d.dms_civiere!=null?fmtMin(d.dms_civiere*60):null,
+      's\u00e9jour moyen sur civi\u00e8re hier \u2014 cas lourds ; '+
+      'c\u2019est le chiffre mis de l\u2019avant par Qu\u00e9bec.ca')+
     '</div>'+
     estimationHtml(d)+
     '<div class="fh">Ce qui vous attend</div>'+
@@ -2222,7 +2232,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v21';
+const CACHE='boussole-v22';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
