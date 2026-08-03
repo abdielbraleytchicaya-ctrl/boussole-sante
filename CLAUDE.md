@@ -284,7 +284,17 @@ Implémentation de la maquette Claude Design remise par l'utilisateur
   et la fiche, exclues de « Recommandé près de vous » (meilleurGeneral()),
   note affichée si une spécialisée aurait été première. Documenté dans la
   méthodologie.
-- Recommandation avec garde-fous (2 août soir, signalé par l'utilisateur :
+- Recommandation restructurée (3 août, 3e signalement de l'utilisateur :
+  LaSalle à 57 km « recommandé » depuis Saint-Hyacinthe — passait les
+  garde-fous mais trahissait le titre « près de vous ») : la carte
+  recommande TOUJOURS l'urgence générale la plus proche (plusProcheGeneral) ;
+  meilleurGeneral (rayon + gain ≥ 45 min) ne sert plus qu'à afficher une
+  ALTERNATIVE optionnelle (« Si vous pouvez faire la route : … le trafic
+  réel n'est pas compté »), avec lien vers sa fiche. Onglet 3 par défaut =
+  le plus proche. Méthodologie mise à jour. Principe retenu : jamais
+  d'optimisation qui surprend l'utilisateur — le choix par défaut est
+  l'évidence locale, l'optimisation est une option expliquée.
+- Anciens garde-fous (2 août soir, signalé par l'utilisateur :
   Coaticook à 105 km « recommandé » depuis Saint-Hyacinthe pour ~20 min de
   gain) : meilleurGeneral() limite les candidats au rayon (plus proche
   + 60 km, min 80 km) et n'accepte un hôpital plus loin que le plus proche

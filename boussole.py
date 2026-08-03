@@ -1022,11 +1022,13 @@ relevé à celui d'environ 3 heures avant (écart d'au moins 3 personnes et
 <p><b>Résumé provincial</b>&nbsp;: l'occupation moyenne est pondérée (toutes
 les civières occupées divisées par toutes les civières fonctionnelles), sur
 les seules urgences diffusées par le MSSS.</p>
-<p><b>«&nbsp;Recommandé près de vous&nbsp;»</b>&nbsp;: parmi les urgences
-générales d'un rayon réaliste (l'hôpital le plus proche + 60&nbsp;km), celle
-au temps total estimé le plus court. Un hôpital plus éloigné que le plus
-proche n'est proposé que s'il fait gagner au moins 45&nbsp;minutes —
-en deçà, l'écart est plus petit que la marge d'erreur des estimations.</p>
+<p><b>«&nbsp;Recommandé près de vous&nbsp;»</b>&nbsp;: toujours l'urgence
+générale la plus proche de votre position. Si, dans un rayon réaliste, un
+hôpital plus éloigné afficherait un temps total estimé d'au moins
+45&nbsp;minutes de moins, il est mentionné comme <b>alternative
+optionnelle</b> — jamais comme recommandation principale, car ces
+estimations ne comptent ni le trafic réel ni leur propre marge
+d'erreur.</p>
 <p><b>Urgences spécialisées</b>&nbsp;: les urgences à vocation particulière
 (santé mentale, cardiologie-pneumologie, pédiatrie) sont reconnues par leur
 nom, étiquetées dans la liste et exclues de la carte
@@ -1221,37 +1223,39 @@ function recommHtml(){
       '<button type="button" class="pill pill-b" style="margin-top:16px" '+
       'data-loc="1">\\uD83D\\uDCCD Activer ma position</button>';
   }
-  const best=meilleurGeneral();
-  if(!best)return k+'<p class="gnote" style="margin-top:12px">Pas assez de donn\u00e9es.</p>';
-  let bestAbs=null;
-  DATA.forEach(d=>{if(d._total!=null&&(bestAbs==null||d._total<bestAbs._total))bestAbs=d;});
-  const noteSpec=(bestAbs&&bestAbs!==best&&vocation(bestAbs))
-    ?'<p class="gnote">Les urgences sp\u00e9cialis\u00e9es (sant\u00e9 mentale, '+
-     'cardiologie, p\u00e9diatrie) ne sont pas recommand\u00e9es d\u2019office '+
-     '\u2014 elles restent dans la liste, \u00e9tiquet\u00e9es.</p>':'';
-  const b=estBornes(best);
   const proche=plusProcheGeneral();
-  let raison='le temps total estim\u00e9 le plus court pr\u00e8s de chez vous';
-  if(proche&&best===proche){
-    raison='le plus proche de chez vous \u2014 et le meilleur temps total '+
-      'de votre secteur';
-  }else if(proche&&proche._total!=null&&best._total!=null){
-    raison='\u2248 '+fmtMin(proche._total-best._total)+' de moins que '+
-      proche.installation+', pourtant plus proche';
-  }
-  return k+
+  if(!proche)return k+'<p class="gnote" style="margin-top:12px">Pas assez de donn\u00e9es.</p>';
+  const b=estBornes(proche);
+  const totalTxt=proche._total!=null?fmtMin(proche._total)
+    :(b?fmtMin((b.lo+b.hi)/2):'\u2014');
+  let h=k+
     '<div style="margin-top:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">'+
     '<div style="min-width:190px;flex:1">'+
-    '<div style="font-size:21px;font-weight:600;letter-spacing:-0.02em;line-height:1.2">'+best.installation+'</div>'+
+    '<div style="font-size:21px;font-weight:600;letter-spacing:-0.02em;line-height:1.2">'+proche.installation+'</div>'+
     '<div style="margin-top:6px;font-size:14px;color:var(--mut)">'+
-    Math.round(best._km)+' km \u00b7 ~'+fmtMin(best._route)+' de route \u00b7 '+raison+'</div></div>'+
-    '<div style="text-align:right"><div class="bigmono" style="font-size:32px">'+fmtMin(best._total)+'</div>'+
+    Math.round(proche._km)+' km \u00b7 ~'+fmtMin(proche._route)+' de route \u00b7 '+
+    'l\u2019urgence g\u00e9n\u00e9rale la plus proche de chez vous</div></div>'+
+    '<div style="text-align:right"><div class="bigmono" style="font-size:32px">'+totalTxt+'</div>'+
     '<div style="font-size:12px;color:var(--mut);margin-top:4px">temps total estim\u00e9</div></div></div>'+
     (b?'<p class="trcap">Dont '+fmtMin(b.lo)+' \u2013 '+fmtMin(b.hi)+' sur place '+
       '(cas non prioritaire \u2014 le triage passe toujours en premier).</p>':'')+
     '<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">'+
-    '<button type="button" class="pill pill-n" data-fiche="'+best._i+'">Voir la fiche</button>'+
-    '<button type="button" class="pill pill-o" data-go2="1">Comparer les autres</button></div>'+noteSpec;
+    '<button type="button" class="pill pill-n" data-fiche="'+proche._i+'">Voir la fiche</button>'+
+    '<button type="button" class="pill pill-o" data-go2="1">Comparer les autres</button></div>';
+  /* Une option plus lointaine n'est qu'une ALTERNATIVE, jamais le choix par
+     d\u00e9faut \u2014 et on invite \u00e0 la prudence (trafic non compt\u00e9). */
+  const best=meilleurGeneral();
+  if(best&&best!==proche&&best._total!=null&&proche._total!=null){
+    h+='<div class="hr"></div>'+
+      '<p class="trcap"><b>Si vous pouvez faire la route\u00a0:</b> '+
+      best.installation+', \u00e0 '+Math.round(best._km)+' km (~'+
+      fmtMin(best._route)+'), afficherait un temps total \u2248 '+
+      fmtMin(best._total)+' \u2014 soit \u2248 '+
+      fmtMin(proche._total-best._total)+' de moins. Estimation \u00e0 prendre '+
+      'avec prudence\u00a0: le trafic r\u00e9el n\u2019est pas compt\u00e9. '+
+      '<span class="regchip" data-fiche="'+best._i+'">Voir sa fiche</span></p>';
+  }
+  return h;
 }
 function majAccueil(){
   const r=document.getElementById('reseau'),c=document.getElementById('recomm');
@@ -1919,7 +1923,7 @@ Promise.resolve(__PAYLOAD__).then(j=>{
   document.getElementById('ong1').addEventListener('click',()=>goScreen(1));
   document.getElementById('ong2').addEventListener('click',()=>goScreen(2));
   document.getElementById('ong3').addEventListener('click',()=>{
-    if(!FICHE_SEL)FICHE_SEL=meilleurGeneral()||DATA[0];
+    if(!FICHE_SEL)FICHE_SEL=plusProcheGeneral()||meilleurGeneral()||DATA[0];
     if(FICHE_SEL)openFiche(FICHE_SEL);
   });
   document.getElementById('t-soins').addEventListener('click',()=>{
@@ -2123,7 +2127,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v16';
+const CACHE='boussole-v17';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
