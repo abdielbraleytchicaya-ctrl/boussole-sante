@@ -130,14 +130,16 @@ Résultat vérifié : 107 installations, « données MSSS en direct ».
    régler Pages sur « GitHub Actions ». RAPPEL : diffusion publique →
    validation professionnelle des textes du guide d'abord (item 1 README).
    La page autonome (double-clic) et le mode --demo restent inchangés.
-   État au 2 août 2026 : dépôt git LOCAL initialisé (branche main, premier
-   commit fait), gh CLI authentifié (compte abdielbraleytchicaya-ctrl,
-   forfait vraisemblablement gratuit → Pages exige un dépôt public).
-   L'utilisateur a choisi de NE PAS héberger pour l'instant : attendre la
-   validation professionnelle des textes. Quand ce sera fait, les 3
-   commandes (gh repo create --public --push, activation Pages
-   build_type=workflow, gh workflow run) sont dans l'historique de
-   conversation et dans le README. Rien n'a été publié.
+   ACTIVÉ le 2 août 2026 (soir), à la demande de l'utilisateur : dépôt
+   public github.com/abdielbraleytchicaya-ctrl/boussole-sante, Pages en
+   mode workflow, premier déploiement vérifié (108 urgences, source msss,
+   relevé de 21:45 — les serveurs GitHub atteignent bien le MSSS).
+   Site : https://abdielbraleytchicaya-ctrl.github.io/boussole-sante/
+   Collecte cloud : cron h:55 UTC ; l'historique des tendances du site vit
+   dans le cache d'Actions (reparti de zéro à l'activation, tendances après
+   3 jours). La collecte launchd locale continue = copie maîtresse.
+   RAPPEL toujours valable : ne pas diffuser largement le lien avant la
+   validation professionnelle des textes (guide + méthodologie).
 
 ## Ajouts après la feuille de route initiale
 - Tri « distance » + bascule automatique en « plus proche d'abord » dès que
