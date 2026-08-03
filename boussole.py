@@ -1102,6 +1102,9 @@ function chips(){
     if(!isNaN(min))
       h+='<span class="chip '+(min<=75?'ok':'warn')+'">Relev\\u00e9 '+
         (min<60?'il y a '+min+' min':'de '+META.releve.slice(11))+'</span>';
+    if(!isNaN(min)&&min>150)
+      h+='<span class="chip warn">Donn\\u00e9es possiblement p\\u00e9rim\\u00e9es '+
+        '\\u2014 v\\u00e9rifiez votre connexion</span>';
   }else{
     h+='<span class="chip warn">Donn\\u00e9es de d\\u00e9monstration</span>';
   }
@@ -1297,12 +1300,11 @@ function hav(a1,o1,a2,o2){const r=Math.PI/180,R=6371,
 function fmtMin(m){if(m==null)return 'n/d';m=Math.round(m);
   return m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0');}
 let POSVILLE=null; /* nom de la ville si la position vient de la liste */
-function setPosition(lat,lon,ville){
-  POS=[lat,lon];
-  POSVILLE=ville||null;
+function calcDistances(){
+  if(!POS)return;
   DATA.forEach(d=>{
     if(d.lat==null){d._km=null;d._route=null;d._total=null;return;}
-    d._km=hav(lat,lon,d.lat,d.lon);
+    d._km=hav(POS[0],POS[1],d.lat,d.lon);
     /* Estimation grossi\\u00e8re du temps de route : distance routi\\u00e8re
        \\u2248 1,3 \\u00d7 vol d'oiseau ; vitesse moyenne de 30 \\u00e0 80 km/h
        selon la distance (ville \\u2192 autoroute). */
@@ -1310,6 +1312,11 @@ function setPosition(lat,lon,ville){
     d._route=kmRoute/v*60;
     d._total=d.dms_ambulatoire!=null?d._route+d.dms_ambulatoire*60:null;
   });
+}
+function setPosition(lat,lon,ville){
+  POS=[lat,lon];
+  POSVILLE=ville||null;
+  calcDistances();
   const lb=document.getElementById('loc');
   if(lb)lb.textContent='Position activ\\u00e9e \\u2713';
   chips();
@@ -2035,6 +2042,29 @@ Promise.resolve(__PAYLOAD__).then(j=>{
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){const v=document.getElementById('voile');if(v)v.remove();}
   });
+  /* Rafra\\u00eechissement : une app rouverte le lendemain doit montrer
+     AUJOURD'HUI. On recharge donnees.json au retour dans l'app et toutes
+     les 10 minutes (site en ligne seulement \\u2014 la page locale a ses
+     donn\\u00e9es incluses). */
+  function rafraichir(){
+    if(location.protocol!=='http:'&&location.protocol!=='https:')return;
+    fetch('donnees.json',{cache:'no-store'}).then(r=>r.json()).then(nv=>{
+      if(!nv||!nv.data||!nv.data.length||nv.source!=='msss')return;
+      if(nv.releve===META.releve)return;
+      DATA=nv.data;META=nv;
+      DATA.forEach((d,i)=>{d._i=i;});
+      calcDistances();
+      chips();majAccueil();render();
+      if(FICHE_SEL){
+        const n=DATA.find(d=>d.installation===FICHE_SEL.installation);
+        FICHE_SEL=n||null;
+        if(n&&SCREEN===3)openFiche(n);
+      }
+    }).catch(()=>{});
+  }
+  setInterval(rafraichir,10*60*1000);
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden)rafraichir();});
   reprendreVille();
   majAccueil();
   /* Permission GPS d\\u00e9j\\u00e0 accord\\u00e9e lors d'une visite
@@ -2156,7 +2186,7 @@ MANIFEST = """{
 SW_JS = """/* Boussole sant\\u00e9 \\u2014 service worker.
    Strat\\u00e9gie : r\\u00e9seau d'abord (donn\\u00e9es fra\\u00eeches),
    cache en secours (hors ligne : derni\\u00e8re version vue). */
-const CACHE='boussole-v18';
+const CACHE='boussole-v19';
 const SHELL=['./','manifest.webmanifest','icone-192.png','icone-512.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL))
